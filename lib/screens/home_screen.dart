@@ -203,9 +203,15 @@ class _Header extends StatelessWidget {
             const Spacer(),
             Row(
               children: [
-                _StatChip(icon: Icons.local_fire_department_rounded, label: '$streak يومًا'),
+                _StatChip(
+                  icon: Icons.local_fire_department_rounded,
+                  label: '${ltr(streak)} يومًا',
+                ),
                 const SizedBox(width: 8),
-                _StatChip(icon: Icons.fingerprint_rounded, label: '$taps تكرارًا اليوم'),
+                _StatChip(
+                  icon: Icons.fingerprint_rounded,
+                  label: '${ltr(taps)} تكرارًا اليوم',
+                ),
               ],
             ),
           ],
@@ -396,7 +402,7 @@ class _WirdCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      finished ? 'اكتمل الورد' : '$blurb · $done / $total',
+                      finished ? 'اكتمل الورد' : '$blurb · ${fraction(done, total)}',
                       style: const TextStyle(color: AppColors.inkSoft, fontSize: 13),
                     ),
                   ],
@@ -455,7 +461,7 @@ class _CategoryTile extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                subtitle ?? (finished ? 'تم' : '$done / $total'),
+                subtitle ?? (finished ? 'تم' : fraction(done, total)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: AppColors.inkSoft, fontSize: 12),

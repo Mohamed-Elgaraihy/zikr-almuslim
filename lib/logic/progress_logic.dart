@@ -227,6 +227,11 @@ String formatCount(int value) {
   return value.toString().padLeft(2, '0');
 }
 
+/// Keeps digits and slashes in left-to-right order inside the Arabic layout.
+String ltr(Object value) => '\u200E$value';
+
+String fraction(int done, int total) => ltr('$done / $total');
+
 int tapsFor(PersistedState state, String categoryId, int itemId) {
   return state.taps[itemKey(categoryId, itemId)] ?? 0;
 }

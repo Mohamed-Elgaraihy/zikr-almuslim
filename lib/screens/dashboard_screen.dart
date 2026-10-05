@@ -152,7 +152,7 @@ class _GoalCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _Ring(progress: progress, label: '$done/$total'),
+          _Ring(progress: progress, label: fraction(done, total)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -167,8 +167,8 @@ class _GoalCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('$streak أيام متتالية'),
-                Text('$taps تكرارًا · $chapters أبواب مكتملة'),
+                Text('${ltr(streak)} أيام متتالية'),
+                Text('${ltr(taps)} تكرارًا · ${ltr(chapters)} أبواب مكتملة'),
               ],
             ),
           ),
@@ -312,7 +312,7 @@ class _MiniWird extends StatelessWidget {
               Icon(icon, color: AppColors.green),
               const SizedBox(height: 8),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(finished ? 'تمّت' : '$done / $total'),
+              Text(finished ? 'تمّت' : fraction(done, total)),
             ],
           ),
         ),
@@ -410,7 +410,7 @@ class _ProgressLine extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(child: Text(category.title)),
-                    Text('$done / $total'),
+                    Text(fraction(done, total)),
                   ],
                 ),
                 const SizedBox(height: 6),
