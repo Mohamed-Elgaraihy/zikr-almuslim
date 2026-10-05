@@ -90,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 group.title,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: AppColors.greenDark,
                 ),
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 280,
-                mainAxisExtent: 108,
+                mainAxisExtent: 124,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
@@ -183,7 +183,7 @@ class _Header extends StatelessWidget {
           children: [
             Text(
               greeting,
-              style: const TextStyle(color: AppColors.goldSoft, fontSize: 14),
+              style: const TextStyle(color: AppColors.goldSoft, fontSize: 17),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -241,7 +241,7 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: AppColors.goldSoft),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 13)),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
         ],
       ),
     );
@@ -397,13 +397,13 @@ class _WirdCard extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                        fontSize: 18,
                         color: AppColors.greenDark,
                       ),
                     ),
                     Text(
                       finished ? 'اكتمل الورد' : '$blurb · ${fraction(done, total)}',
-                      style: const TextStyle(color: AppColors.inkSoft, fontSize: 13),
+                      style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
                     ),
                   ],
                 ),
@@ -464,7 +464,7 @@ class _CategoryTile extends StatelessWidget {
                 subtitle ?? (finished ? 'تم' : fraction(done, total)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.inkSoft, fontSize: 12),
+                style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
               ),
             ],
           ),

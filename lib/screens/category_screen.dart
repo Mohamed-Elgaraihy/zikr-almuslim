@@ -57,7 +57,7 @@ class CategoryScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   fraction(done, total),
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
             ),

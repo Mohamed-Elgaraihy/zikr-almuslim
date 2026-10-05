@@ -18,6 +18,15 @@ class AppColors {
   static const alertWash = Color(0xFFFFF3E4);
 }
 
+TextStyle? _scale(TextStyle? style) {
+  if (style == null) return null;
+  final size = style.fontSize;
+  return style.copyWith(
+    fontFamily: 'Cairo',
+    fontSize: size == null ? null : size * 1.16,
+  );
+}
+
 ThemeData buildTheme() {
   final base = ThemeData(
     useMaterial3: true,
@@ -32,7 +41,25 @@ ThemeData buildTheme() {
       onSurface: AppColors.ink,
     ),
   );
+  final source = base.textTheme;
   return base.copyWith(
+    textTheme: source.copyWith(
+      displayLarge: _scale(source.displayLarge),
+      displayMedium: _scale(source.displayMedium),
+      displaySmall: _scale(source.displaySmall),
+      headlineLarge: _scale(source.headlineLarge),
+      headlineMedium: _scale(source.headlineMedium),
+      headlineSmall: _scale(source.headlineSmall),
+      titleLarge: _scale(source.titleLarge),
+      titleMedium: _scale(source.titleMedium),
+      titleSmall: _scale(source.titleSmall),
+      bodyLarge: _scale(source.bodyLarge),
+      bodyMedium: _scale(source.bodyMedium),
+      bodySmall: _scale(source.bodySmall),
+      labelLarge: _scale(source.labelLarge),
+      labelMedium: _scale(source.labelMedium),
+      labelSmall: _scale(source.labelSmall),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.greenDark,
       foregroundColor: Colors.white,
@@ -41,19 +68,20 @@ ThemeData buildTheme() {
       titleTextStyle: TextStyle(
         fontFamily: 'Cairo',
         color: Colors.white,
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: FontWeight.w700,
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.card,
       indicatorColor: AppColors.goldSoft,
+      height: 72,
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
         return TextStyle(
           fontFamily: 'Cairo',
-          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-          fontSize: 13,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          fontSize: 15,
           color: selected ? AppColors.greenDark : AppColors.inkSoft,
         );
       }),

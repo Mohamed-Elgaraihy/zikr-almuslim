@@ -110,4 +110,23 @@ void main() {
     expect(unsentNotices(sent, library, morning), isEmpty);
     expect(overdueNotices(sent, library, morning), isNotEmpty);
   });
+
+  test('legacy font sizes rise to the readable default', () {
+    final now = DateTime(2026, 10, 5);
+    final legacy = PersistedState.fromJson({
+      'day': '2026-10-05',
+      'fontSize': 22,
+    }, now);
+    expect(legacy.fontSize, kDefaultDhikrFontSize);
+    expect(legacy.onboardingSeen, isFalse);
+
+    final chosen = PersistedState.fromJson({
+      'day': '2026-10-05',
+      'fontSize': 40,
+      'onboardingSeen': true,
+    }, now);
+    expect(chosen.fontSize, 40);
+    expect(chosen.onboardingSeen, isTrue);
+    expect(chosen.copyWith().toJson()['onboardingSeen'], isTrue);
+  });
 }

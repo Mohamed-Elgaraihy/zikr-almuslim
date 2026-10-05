@@ -349,7 +349,7 @@ class _WeekStrip extends StatelessWidget {
                 children: [
                   Text(
                     shortWeekday(day),
-                    style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                    style: const TextStyle(fontSize: 15, color: AppColors.inkSoft),
                   ),
                   const SizedBox(height: 6),
                   Container(

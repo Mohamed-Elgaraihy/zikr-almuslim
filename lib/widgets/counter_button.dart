@@ -90,8 +90,8 @@ class _CounterButtonState extends State<CounterButton>
           scale: _pulse,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            width: 74,
-            height: 74,
+            width: 84,
+            height: 84,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: done ? AppColors.green : AppColors.card,
@@ -114,7 +114,7 @@ class _CounterButtonState extends State<CounterButton>
                     formatCount(widget.remaining),
                     style: const TextStyle(
                       fontFamily: 'Amiri',
-                      fontSize: 26,
+                      fontSize: 32,
                       fontWeight: FontWeight.w700,
                       color: AppColors.greenDark,
                       height: 1,

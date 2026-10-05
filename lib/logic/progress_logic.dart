@@ -1,5 +1,18 @@
 import '../models/azkar.dart';
 
+const double kMinDhikrFontSize = 28;
+const double kMaxDhikrFontSize = 52;
+const double kDefaultDhikrFontSize = 36;
+
+/// Sizes saved by the first release (around 22) are below the readable floor.
+double normalizeDhikrFontSize(num? raw) {
+  if (raw == null) return kDefaultDhikrFontSize;
+  final size = raw.toDouble();
+  if (size < kMinDhikrFontSize) return kDefaultDhikrFontSize;
+  if (size > kMaxDhikrFontSize) return kMaxDhikrFontSize;
+  return size;
+}
+
 enum WirdSlot { morning, evening }
 
 class DueNotice {
@@ -28,8 +41,9 @@ class PersistedState {
     this.morningMinute = 0,
     this.eveningHour = 16,
     this.eveningMinute = 30,
-    this.fontSize = 22,
+    this.fontSize = kDefaultDhikrFontSize,
     this.hintSeen = false,
+    this.onboardingSeen = false,
     this.morningPingDay,
     this.eveningPingDay,
   });
@@ -46,6 +60,7 @@ class PersistedState {
   final int eveningMinute;
   final double fontSize;
   final bool hintSeen;
+  final bool onboardingSeen;
   final String? morningPingDay;
   final String? eveningPingDay;
 
@@ -67,6 +82,7 @@ class PersistedState {
     int? eveningMinute,
     double? fontSize,
     bool? hintSeen,
+    bool? onboardingSeen,
     String? morningPingDay,
     bool clearMorningPing = false,
     String? eveningPingDay,
@@ -85,6 +101,7 @@ class PersistedState {
       eveningMinute: eveningMinute ?? this.eveningMinute,
       fontSize: fontSize ?? this.fontSize,
       hintSeen: hintSeen ?? this.hintSeen,
+      onboardingSeen: onboardingSeen ?? this.onboardingSeen,
       morningPingDay: clearMorningPing
           ? null
           : (morningPingDay ?? this.morningPingDay),
@@ -108,6 +125,7 @@ class PersistedState {
       'eveningMinute': eveningMinute,
       'fontSize': fontSize,
       'hintSeen': hintSeen,
+      'onboardingSeen': onboardingSeen,
       'morningPingDay': morningPingDay,
       'eveningPingDay': eveningPingDay,
     };
@@ -141,8 +159,9 @@ class PersistedState {
       morningMinute: (json['morningMinute'] as num?)?.toInt() ?? 0,
       eveningHour: (json['eveningHour'] as num?)?.toInt() ?? 16,
       eveningMinute: (json['eveningMinute'] as num?)?.toInt() ?? 30,
-      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 22,
+      fontSize: normalizeDhikrFontSize(json['fontSize'] as num?),
       hintSeen: json['hintSeen'] as bool? ?? false,
+      onboardingSeen: json['onboardingSeen'] as bool? ?? false,
       morningPingDay: json['morningPingDay'] as String?,
       eveningPingDay: json['eveningPingDay'] as String?,
     );

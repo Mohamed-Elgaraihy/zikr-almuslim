@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'screens/onboarding_screen.dart';
 import 'screens/shell_screen.dart';
 import 'state/app_controller.dart';
 import 'theme/app_theme.dart';
@@ -34,9 +35,17 @@ class ZikrApp extends StatelessWidget {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: ShellScreen(
-        controller: controller,
-        enableTicker: enableTicker,
+      home: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          if (!controller.state.onboardingSeen) {
+            return OnboardingScreen(onDone: controller.completeOnboarding);
+          }
+          return ShellScreen(
+            controller: controller,
+            enableTicker: enableTicker,
+          );
+        },
       ),
     );
   }

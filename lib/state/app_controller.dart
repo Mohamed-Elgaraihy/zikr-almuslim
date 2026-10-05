@@ -154,8 +154,13 @@ class AppController extends ChangeNotifier {
     await syncReminders(reschedule: true);
   }
 
+  void completeOnboarding() {
+    if (state.onboardingSeen) return;
+    _commit(state.copyWith(onboardingSeen: true));
+  }
+
   void setFontSize(double size) {
-    final clamped = size.clamp(18, 34).toDouble();
+    final clamped = size.clamp(kMinDhikrFontSize, kMaxDhikrFontSize).toDouble();
     if (clamped == state.fontSize) return;
     _commit(state.copyWith(fontSize: clamped));
   }

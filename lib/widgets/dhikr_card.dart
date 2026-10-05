@@ -58,10 +58,16 @@ class DhikrCard extends StatelessWidget {
                   item.text,
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                    fontFamily: 'Amiri',
+                    fontFamily: 'Uthmanic',
+                    fontFamilyFallback: const ['Amiri', 'Cairo'],
                     fontSize: fontSize,
                     height: 2.05,
                     color: AppColors.ink,
+                    fontFeatures: const [
+                      FontFeature.enable('calt'),
+                      FontFeature.enable('liga'),
+                      FontFeature.enable('rlig'),
+                    ],
                   ),
                 ),
                 if (item.virtue != null) ...[
@@ -71,8 +77,8 @@ class DhikrCard extends StatelessWidget {
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: (fontSize * 0.62).clamp(13, 18),
-                      height: 1.7,
+                      fontSize: (fontSize * 0.55).clamp(18, 28),
+                      height: 1.75,
                       color: AppColors.virtue,
                       fontWeight: FontWeight.w600,
                     ),
@@ -117,7 +123,7 @@ class DhikrCard extends StatelessWidget {
                 '$index',
                 style: const TextStyle(
                   fontFamily: 'Amiri',
-                  fontSize: 16,
+                  fontSize: 18,
                   color: AppColors.gold,
                   fontWeight: FontWeight.w700,
                 ),

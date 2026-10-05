@@ -100,9 +100,9 @@ class SettingsScreen extends StatelessWidget {
               Text('حجم خط الذكر: ${state.fontSize.round()}'),
               Slider(
                 value: state.fontSize,
-                min: 18,
-                max: 34,
-                divisions: 16,
+                min: kMinDhikrFontSize,
+                max: kMaxDhikrFontSize,
+                divisions: (kMaxDhikrFontSize - kMinDhikrFontSize).round(),
                 label: '${state.fontSize.round()}',
                 onChanged: controller.setFontSize,
               ),
