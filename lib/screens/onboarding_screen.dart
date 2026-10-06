@@ -25,7 +25,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _GuidePage(
       title: 'عدّ بلمسة واحدة',
       body:
-          'اضغط الدائرة الخضراء مرة لكل تسبيحة. أبقِ إصبعك عليها ليسرع العدّ حتى تظهر علامة الصح، ويمكنك إعادة الذكر متى شئت.',
+          'العداد شريط أخضر تحت الذكر. اضغطه مرة لكل تسبيحة، وأبقِ إصبعك عليه ليسرع العدّ حتى تظهر علامة الصح.',
     ),
     _GuidePage(
       title: 'لا يفوتك الورد',
@@ -193,6 +193,27 @@ class _Illustration extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final counting = index == 1;
+    if (counting) {
+      return Container(
+        width: 220,
+        height: 84,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.green,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Text(
+          '03',
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            height: 1,
+          ),
+        ),
+      );
+    }
     return Container(
       width: 168,
       height: 168,
@@ -202,22 +223,11 @@ class _Illustration extends StatelessWidget {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.7), width: 3),
       ),
       alignment: Alignment.center,
-      child: counting
-          ? const Text(
-              '03',
-              style: TextStyle(
-                fontFamily: 'Amiri',
-                fontSize: 64,
-                fontWeight: FontWeight.w700,
-                color: AppColors.goldSoft,
-                height: 1,
-              ),
-            )
-          : const Icon(
-              Icons.notifications_active_rounded,
-              color: AppColors.goldSoft,
-              size: 72,
-            ),
+      child: const Icon(
+        Icons.notifications_active_rounded,
+        color: AppColors.goldSoft,
+        size: 72,
+      ),
     );
   }
 }

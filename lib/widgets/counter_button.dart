@@ -12,40 +12,29 @@ class CounterButton extends StatefulWidget {
     required this.remaining,
     required this.done,
     required this.onTap,
+    required this.onReset,
+    required this.index,
     required this.label,
   });
 
   final int remaining;
   final bool done;
   final bool Function() onTap;
+  final VoidCallback onReset;
+  final int index;
   final String label;
 
   @override
   State<CounterButton> createState() => _CounterButtonState();
 }
 
-class _CounterButtonState extends State<CounterButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse;
+class _CounterButtonState extends State<CounterButton> {
   Timer? _rapid;
   Timer? _rapidStart;
 
   @override
-  void initState() {
-    super.initState();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 140),
-      lowerBound: 0.94,
-      upperBound: 1,
-      value: 1,
-    );
-  }
-
-  @override
   void dispose() {
     _stopRapid();
-    _pulse.dispose();
     super.dispose();
   }
 
@@ -62,7 +51,6 @@ class _CounterButtonState extends State<CounterButton>
       return;
     }
     HapticFeedback.selectionClick();
-    _pulse.forward(from: 0.94);
   }
 
   @override
@@ -71,56 +59,77 @@ class _CounterButtonState extends State<CounterButton>
     return Semantics(
       button: true,
       label: done ? 'اكتمل. ${widget.label}' : 'المتبقي ${widget.remaining}. ${widget.label}',
-      child: GestureDetector(
-        onTap: done ? null : _tick,
-        onLongPressStart: done
-            ? null
-            : (_) {
-                _tick();
-                _rapidStart = Timer(const Duration(milliseconds: 280), () {
-                  _rapid = Timer.periodic(
-                    const Duration(milliseconds: 70),
-                    (_) => _tick(),
-                  );
-                });
-              },
-        onLongPressEnd: (_) => _stopRapid(),
-        onLongPressCancel: _stopRapid,
-        child: ScaleTransition(
-          scale: _pulse,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: done ? AppColors.green : AppColors.card,
-              border: Border.all(
-                color: done ? AppColors.green : AppColors.green,
-                width: 3,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.green.withValues(alpha: done ? 0.25 : 0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: done
-                ? const Icon(Icons.check_rounded, color: Colors.white, size: 34)
-                : Text(
-                    formatCount(widget.remaining),
-                    style: const TextStyle(
-                      fontFamily: 'Amiri',
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.greenDark,
-                      height: 1,
-                    ),
+      child: SizedBox(
+        height: 76,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: done ? null : _tick,
+                onLongPressStart: done
+                    ? null
+                    : (_) {
+                        _tick();
+                        _rapidStart = Timer(const Duration(milliseconds: 280), () {
+                          _rapid = Timer.periodic(
+                            const Duration(milliseconds: 70),
+                            (_) => _tick(),
+                          );
+                        });
+                      },
+                onLongPressEnd: (_) => _stopRapid(),
+                onLongPressCancel: _stopRapid,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  decoration: BoxDecoration(
+                    color: done ? AppColors.greenDark : AppColors.green,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-          ),
+                  alignment: Alignment.center,
+                  child: done
+                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 36)
+                      : Text(
+                          formatCount(widget.remaining),
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 4,
+              top: 0,
+              bottom: 0,
+              child: IconButton(
+                tooltip: 'إعادة',
+                onPressed: widget.onReset,
+                icon: Icon(
+                  Icons.replay_rounded,
+                  color: Colors.white.withValues(alpha: 0.92),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 12,
+              bottom: 6,
+              child: Text(
+                '${widget.index}',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

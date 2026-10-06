@@ -83,7 +83,7 @@ class CategoryScreen extends StatelessWidget {
                     children: [
                       const Expanded(
                         child: Text(
-                          'اضغط الدائرة للعدّ، وأبقِ الضغط للعدّ السريع. يصل العداد إلى الصفر حين يكتمل الذكر.',
+                          'اضغط الشريط الأخضر للعدّ، وأبقِ الضغط للعدّ السريع. يصل العداد إلى الصفر حين يكتمل الذكر.',
                         ),
                       ),
                       IconButton(

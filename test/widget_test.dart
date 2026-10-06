@@ -57,6 +57,12 @@ void main() {
 
     final counter = find.byKey(const ValueKey('counter-morning-1'));
     expect(counter, findsOneWidget);
+    await tester.scrollUntilVisible(
+      counter,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pump();
     expect(find.text('01'), findsWidgets);
 
     await tester.tap(counter);
