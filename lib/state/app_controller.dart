@@ -161,8 +161,8 @@ class AppController extends ChangeNotifier {
 
   void setFontSize(double size) {
     final clamped = size.clamp(kMinDhikrFontSize, kMaxDhikrFontSize).toDouble();
-    if (clamped == state.fontSize) return;
-    _commit(state.copyWith(fontSize: clamped));
+    if (clamped == state.fontSize && state.fontTuned) return;
+    _commit(state.copyWith(fontSize: clamped, fontTuned: true));
   }
 
   Future<bool> sendTestNotification() async {

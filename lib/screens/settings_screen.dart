@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../content/info_copy.dart';
 import '../logic/progress_logic.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
+import 'info_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.controller});
@@ -98,6 +100,11 @@ class SettingsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('حجم خط الذكر: ${state.fontSize.round()}'),
+              const SizedBox(height: 4),
+              const Text(
+                'الحجم الطبيعي ٢٨، ويمكن تكبيره أو تصغيره من هنا.',
+                style: TextStyle(color: AppColors.inkSoft, height: 1.5),
+              ),
               Slider(
                 value: state.fontSize,
                 min: kMinDhikrFontSize,
@@ -105,6 +112,33 @@ class SettingsScreen extends StatelessWidget {
                 divisions: (kMaxDhikrFontSize - kMinDhikrFontSize).round(),
                 label: '${state.fontSize.round()}',
                 onChanged: controller.setFontSize,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Card(
+          child: Column(
+            children: [
+              _InfoTile(
+                icon: Icons.menu_book_outlined,
+                title: 'عن التطبيق',
+                kind: InfoKind.about,
+              ),
+              _InfoTile(
+                icon: Icons.person_outline_rounded,
+                title: 'من نحن',
+                kind: InfoKind.developer,
+              ),
+              _InfoTile(
+                icon: Icons.privacy_tip_outlined,
+                title: 'سياسة الخصوصية',
+                kind: InfoKind.privacy,
+              ),
+              _InfoTile(
+                icon: Icons.gavel_rounded,
+                title: 'شروط الاستخدام',
+                kind: InfoKind.terms,
               ),
             ],
           ),
@@ -186,6 +220,35 @@ class SettingsScreen extends StatelessWidget {
       },
     );
     if (approved == true) action();
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
+    required this.icon,
+    required this.title,
+    required this.kind,
+  });
+
+  final IconData icon;
+  final String title;
+  final InfoKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: AppColors.greenDark),
+      title: Text(title),
+      trailing: const Icon(Icons.chevron_left_rounded),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (context) => InfoScreen(kind: kind),
+          ),
+        );
+      },
+    );
   }
 }
 

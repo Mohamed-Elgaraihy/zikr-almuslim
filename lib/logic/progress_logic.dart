@@ -1,14 +1,16 @@
 import '../models/azkar.dart';
 
-const double kMinDhikrFontSize = 28;
-const double kMaxDhikrFontSize = 52;
-const double kDefaultDhikrFontSize = 36;
+const double kMinDhikrFontSize = 22;
+const double kMaxDhikrFontSize = 48;
+const double kDefaultDhikrFontSize = 28;
 
-/// Sizes saved by the first release (around 22) are below the readable floor.
-double normalizeDhikrFontSize(num? raw) {
+/// The natural reading size is 28. Older installs stored 22 or the previous
+/// automatic size 36 without the reader choosing them.
+double resolveDhikrFontSize(num? raw, {required bool tuned}) {
   if (raw == null) return kDefaultDhikrFontSize;
   final size = raw.toDouble();
-  if (size < kMinDhikrFontSize) return kDefaultDhikrFontSize;
+  if (!tuned && (size <= 22 || size == 36)) return kDefaultDhikrFontSize;
+  if (size < kMinDhikrFontSize) return kMinDhikrFontSize;
   if (size > kMaxDhikrFontSize) return kMaxDhikrFontSize;
   return size;
 }
@@ -42,6 +44,7 @@ class PersistedState {
     this.eveningHour = 16,
     this.eveningMinute = 30,
     this.fontSize = kDefaultDhikrFontSize,
+    this.fontTuned = false,
     this.hintSeen = false,
     this.onboardingSeen = false,
     this.morningPingDay,
@@ -59,6 +62,7 @@ class PersistedState {
   final int eveningHour;
   final int eveningMinute;
   final double fontSize;
+  final bool fontTuned;
   final bool hintSeen;
   final bool onboardingSeen;
   final String? morningPingDay;
@@ -81,6 +85,7 @@ class PersistedState {
     int? eveningHour,
     int? eveningMinute,
     double? fontSize,
+    bool? fontTuned,
     bool? hintSeen,
     bool? onboardingSeen,
     String? morningPingDay,
@@ -100,6 +105,7 @@ class PersistedState {
       eveningHour: eveningHour ?? this.eveningHour,
       eveningMinute: eveningMinute ?? this.eveningMinute,
       fontSize: fontSize ?? this.fontSize,
+      fontTuned: fontTuned ?? this.fontTuned,
       hintSeen: hintSeen ?? this.hintSeen,
       onboardingSeen: onboardingSeen ?? this.onboardingSeen,
       morningPingDay: clearMorningPing
@@ -124,6 +130,7 @@ class PersistedState {
       'eveningHour': eveningHour,
       'eveningMinute': eveningMinute,
       'fontSize': fontSize,
+      'fontTuned': fontTuned,
       'hintSeen': hintSeen,
       'onboardingSeen': onboardingSeen,
       'morningPingDay': morningPingDay,
@@ -159,7 +166,11 @@ class PersistedState {
       morningMinute: (json['morningMinute'] as num?)?.toInt() ?? 0,
       eveningHour: (json['eveningHour'] as num?)?.toInt() ?? 16,
       eveningMinute: (json['eveningMinute'] as num?)?.toInt() ?? 30,
-      fontSize: normalizeDhikrFontSize(json['fontSize'] as num?),
+      fontSize: resolveDhikrFontSize(
+        json['fontSize'] as num?,
+        tuned: json['fontTuned'] as bool? ?? false,
+      ),
+      fontTuned: json['fontTuned'] as bool? ?? false,
       hintSeen: json['hintSeen'] as bool? ?? false,
       onboardingSeen: json['onboardingSeen'] as bool? ?? false,
       morningPingDay: json['morningPingDay'] as String?,

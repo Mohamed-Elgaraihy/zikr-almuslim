@@ -111,14 +111,20 @@ void main() {
     expect(overdueNotices(sent, library, morning), isNotEmpty);
   });
 
-  test('legacy font sizes rise to the readable default', () {
+  test('the natural dhikr size is 28 unless the reader chose another', () {
     final now = DateTime(2026, 10, 5);
     final legacy = PersistedState.fromJson({
       'day': '2026-10-05',
       'fontSize': 22,
     }, now);
-    expect(legacy.fontSize, kDefaultDhikrFontSize);
+    expect(legacy.fontSize, 28);
     expect(legacy.onboardingSeen, isFalse);
+
+    final previousDefault = PersistedState.fromJson({
+      'day': '2026-10-05',
+      'fontSize': 36,
+    }, now);
+    expect(previousDefault.fontSize, 28);
 
     final chosen = PersistedState.fromJson({
       'day': '2026-10-05',
@@ -127,6 +133,13 @@ void main() {
     }, now);
     expect(chosen.fontSize, 40);
     expect(chosen.onboardingSeen, isTrue);
-    expect(chosen.copyWith().toJson()['onboardingSeen'], isTrue);
+
+    final kept = PersistedState.fromJson({
+      'day': '2026-10-05',
+      'fontSize': 36,
+      'fontTuned': true,
+    }, now);
+    expect(kept.fontSize, 36);
+    expect(kept.copyWith().toJson()['fontTuned'], isTrue);
   });
 }
