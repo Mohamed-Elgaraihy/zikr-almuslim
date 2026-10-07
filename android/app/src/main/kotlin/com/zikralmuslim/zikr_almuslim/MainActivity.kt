@@ -1,11 +1,11 @@
 package com.zikralmuslim.zikr_almuslim
 
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.view.WindowManager
-import androidx.activity.result.contract.ActivityResultContracts
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -14,19 +14,6 @@ class MainActivity : FlutterActivity() {
     private var deviceChannel: MethodChannel? = null
     private var pendingSlot: String? = null
     private var pickResult: MethodChannel.Result? = null
-
-    private val pickLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent(),
-    ) { uri ->
-        val result = pickResult
-        pickResult = null
-        if (result == null) return@registerForActivityResult
-        if (uri == null) {
-            result.success(null)
-            return@registerForActivityResult
-        }
-        result.success(readText(uri))
-    }
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +61,11 @@ class MainActivity : FlutterActivity() {
                 "pickText" -> {
                     pickResult?.success(null)
                     pickResult = result
-                    pickLauncher.launch("*/*")
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    startActivityForResult(intent, REQUEST_PICK)
                 }
                 "setAwake" -> {
                     val on = call.argument<Boolean>("on") == true
@@ -106,6 +97,20 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_PICK) return
+        val result = pickResult
+        pickResult = null
+        if (result == null) return
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            result.success(null)
+            return
+        }
+        result.success(readText(uri))
     }
 
     private fun rememberSlot(intent: Intent?) {
@@ -141,5 +146,6 @@ class MainActivity : FlutterActivity() {
     companion object {
         const val EXTRA_SLOT = "zikr_slot"
         const val WIDGET_PREFS = "zikr_widget"
+        const val REQUEST_PICK = 4107
     }
 }
