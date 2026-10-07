@@ -1,395 +1,191 @@
 #!/usr/bin/env python3
-"""Build assets/data/azkar.json from Hisn al-Muslim plus the daily wird."""
+"""Rebuild assets/data/azkar.json from the IslamBook azkar pages.
 
+The category list and the order match the public index. Each page is read
+in full: heading, wording, repeat count, and the virtue note under the text.
+"""
+
+import html
 import json
 import re
-import unicodedata
+import time
+import urllib.request
 from pathlib import Path
+from urllib.parse import quote, urlsplit, urlunsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = Path(__file__).with_name("adhkar_source.json")
 OUT = ROOT / "assets" / "data" / "azkar.json"
 
-GROUPS = [
-    {"id": "daily", "title": "أذكار اليوم"},
-    {"id": "prayer", "title": "الصلاة"},
-    {"id": "mosque", "title": "الطهارة والمسجد"},
-    {"id": "home", "title": "المنزل واللباس"},
-    {"id": "sleep", "title": "النوم"},
-    {"id": "food", "title": "الطعام والصيام"},
-    {"id": "travel", "title": "السفر"},
-    {"id": "hardship", "title": "الهم والمرض"},
-    {"id": "people", "title": "الناس والمجالس"},
-    {"id": "hajj", "title": "الحج والعمرة"},
-    {"id": "nature", "title": "الطبيعة والأحوال"},
-    {"id": "dhikr", "title": "التسبيح والاستغفار"},
-    {"id": "other", "title": "أدعية أخرى"},
+# Titles are the buttons on https://www.islambook.com/azkar/ , in that order.
+CATEGORIES = [
+    ("morning", "أذكار الصباح", "https://www.islambook.com/azkar/1/أذكار-الصباح", True),
+    ("evening", "أذكار المساء", "https://www.islambook.com/azkar/2/أذكار-المساء", True),
+    ("after-prayer", "أذكار بعد الصلاة", "https://www.islambook.com/azkar/9/أذكار-بعد-السلام-من-الصلاة-المفروضة", False),
+    ("tasbih", "تسابيح", "https://www.islambook.com/azkar/3/تسابيح-تسبيح-السبحة-أذكار-عظيمة", False),
+    ("sleep", "أذكار النوم", "https://www.islambook.com/azkar/11/أذكار-النوم-والأحلام", False),
+    ("waking", "أذكار الاستيقاظ", "https://www.islambook.com/azkar/12/أذكار-الإستيقاظ-من-النوم", False),
+    ("prayer", "أذكار الصلاة", "https://www.islambook.com/azkar/22/أذكار-الصلاة", False),
+    ("comprehensive", "جوامع الدعاء", "https://www.islambook.com/azkar/20/جوامع-الدعاء", False),
+    ("prophetic", "أدعية نبوية", "https://www.islambook.com/azkar/21/أدعية-النبي-صلى-الله-عليه-وسلم", False),
+    ("quranic", "الأدعية القرآنية", "https://www.islambook.com/azkar/15/الأدعية-القرآنية", False),
+    ("prophets", "أدعية الأنبياء", "https://www.islambook.com/azkar/28/أدعية-الأنبياء-من-القرآن-الكريم", False),
+    ("various", "أذكار متفرقة", "https://www.islambook.com/azkar/14/أذكار-متفرقة", False),
+    ("adhan", "أذكار الآذان", "https://www.islambook.com/azkar/5/أذكار-عند-سماع-الآذان", False),
+    ("mosque", "أذكار المسجد", "https://www.islambook.com/azkar/6/أذكار-المسجد", False),
+    ("wudu", "أذكار الوضوء", "https://www.islambook.com/azkar/10/أذكار-الوضوء", False),
+    ("home", "أذكار المنزل", "https://www.islambook.com/azkar/4/أذكار-دخول-وخروج-المنزل", False),
+    ("toilet", "أذكار الخلاء", "https://www.islambook.com/azkar/7/أذكار-دخول-وخروج-الخلاء", False),
+    ("food", "أذكار الطعام", "https://www.islambook.com/azkar/13/أذكار-الطعام-والشراب-والضيف", False),
+    ("hajj", "أذكار الحج والعمرة", "https://www.islambook.com/azkar/17/أذكار-الحج-والعمرة", False),
+    ("khatm", "دعاء ختم القرآن الكريم", "https://www.islambook.com/azkar/16/دعاء-ختم-القرآن-الكريم", False),
+    ("dua-virtue", "فضل الدعاء", "https://www.islambook.com/azkar/18/فضل-الدعاء", False),
+    ("dhikr-virtue", "فضل الذكر", "https://www.islambook.com/azkar/19/فضل-الذكر", False),
+    ("surah-virtue", "فضل السور", "https://www.islambook.com/azkar/24/فضائل-السور", False),
+    ("quran-virtue", "فضل القرآن", "https://www.islambook.com/azkar/23/فضائل-القرآن", False),
+    ("names", "أسماء الله الحسنى", "https://www.islambook.com/azkar/25/أسماء-الله-الحسنى", False),
+    ("deceased", "أدعية للميّت", "https://www.islambook.com/azkar/27/أدعية-للميت", False),
+    ("ruqyah", "الرُّقية الشرعية", "https://www.islambook.com/azkar/26/الرقية-الشرعية-من-القرآن-والسنة", False),
 ]
 
-GROUP_BY_SOURCE_ID = {}
 
-
-def assign(ids, group):
-    for i in ids:
-        GROUP_BY_SOURCE_ID[i] = group
-
-
-assign([27], "daily")
-assign([2, 3, 29, 30, 31], "sleep")
-assign([18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 32, 33, 13], "prayer")
-assign([4, 5, 6, 7, 10, 11, 12], "mosque")
-assign([8, 9, 14, 15, 16, 17], "home")
-assign(range(68, 77), "food")
-assign([95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105], "travel")
-assign(list(range(34, 47)) + list(range(49, 61)) + [124, 125, 126, 128], "hardship")
-assign(
-    [47, 48]
-    + list(range(77, 95))
-    + [106, 108, 109, 112, 113, 114, 122, 123],
-    "people",
-)
-assign(range(115, 122), "hajj")
-assign([61, 62, 63, 64, 65, 66, 67, 110, 111], "nature")
-assign([107, 129, 130, 131], "dhikr")
-assign([127, 132], "other")
-
-
-def item(number, text, count, virtue=None):
-    data = {"id": number, "text": text.strip(), "count": count}
-    if virtue:
-        data["virtue"] = virtue.strip()
-    return data
-
-
-def ayah(number):
-    """U+06DD plus Eastern Arabic digits, so the Mushaf font draws a numbered marker."""
-    digits = "".join("٠١٢٣٤٥٦٧٨٩"[int(digit)] for digit in str(number))
-    return f"\u06dd{digits}"
-
-
-KURSI = """أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ
-اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَّهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَن ذَا الَّذِي يَشْفَعُ عِندَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِّنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ""" + ayah(255) + """
-[آية الكرسي — البقرة 255]"""
-
-BAQARAH = """أَعُوذُ بِاللَّهِ مِنَ الشَّيْطَانِ الرَّجِيمِ
-آمَنَ الرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رُّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ""" + ayah(285) + """ لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ""" + ayah(286) + """
-[البقرة 285–286]"""
-
-IKHLAS = f"""بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-قُلْ هُوَ اللَّهُ أَحَدٌ{ayah(1)} اللَّهُ الصَّمَدُ{ayah(2)} لَمْ يَلِدْ وَلَمْ يُولَدْ{ayah(3)} وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ{ayah(4)}"""
-
-FALAQ = f"""بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ{ayah(1)} مِن شَرِّ مَا خَلَقَ{ayah(2)} وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ{ayah(3)} وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ{ayah(4)} وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ{ayah(5)}"""
-
-NAS = f"""بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-قُلْ أَعُوذُ بِرَبِّ النَّاسِ{ayah(1)} مَلِكِ النَّاسِ{ayah(2)} إِلَٰهِ النَّاسِ{ayah(3)} مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ{ayah(4)} الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ{ayah(5)} مِنَ الْجِنَّةِ وَالنَّاسِ{ayah(6)}"""
-
-SAYYID = """اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي، فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ."""
-
-RADITU = "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا."
-
-HASBI = "حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ."
-
-BISMILLAH_HIFZ = "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ."
-
-SUBHAN_ADAD = "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ."
-
-AFINI = "اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَٰهَ إِلَّا أَنْتَ."
-
-KUFR = "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْكُفْرِ وَالْفَقْرِ، وَأَعُوذُ بِكَ مِنْ عَذَابِ الْقَبْرِ، لَا إِلَٰهَ إِلَّا أَنْتَ."
-
-AFW = """اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ، اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي دِينِي وَدُنْيَايَ وَأَهْلِي وَمَالِي، اللَّهُمَّ اسْتُرْ عَوْرَاتِي وَآمِنْ رَوْعَاتِي، اللَّهُمَّ احْفَظْنِي مِنْ بَيْنِ يَدَيَّ وَمِنْ خَلْفِي وَعَنْ يَمِينِي وَعَنْ شِمَالِي وَمِنْ فَوْقِي، وَأَعُوذُ بِعَظَمَتِكَ أَنْ أُغْتَالَ مِنْ تَحْتِي."""
-
-HAYY = "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ وَلَا تَكِلْنِي إِلَىٰ نَفْسِي طَرْفَةَ عَيْنٍ."
-
-GHAYB = """اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ، وَأَنْ أَقْتَرِفَ عَلَىٰ نَفْسِي سُوءًا أَوْ أَجُرَّهُ إِلَىٰ مُسْلِمٍ."""
-
-KALIMAT = "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ."
-
-SALAT = "اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ."
-
-SHIRK = "اللَّهُمَّ إِنَّا نَعُوذُ بِكَ مِنْ أَنْ نُشْرِكَ بِكَ شَيْئًا نَعْلَمُهُ، وَنَسْتَغْفِرُكَ لِمَا لَا نَعْلَمُهُ."
-
-HAMM = "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنَ الْعَجْزِ وَالْكَسَلِ، وَأَعُوذُ بِكَ مِنَ الْجُبْنِ وَالْبُخْلِ، وَأَعُوذُ بِكَ مِنْ غَلَبَةِ الدَّيْنِ وَقَهْرِ الرِّجَالِ."
-
-ISTIGHFAR_AZIM = "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ، الْحَيُّ الْقَيُّومُ، وَأَتُوبُ إِلَيْهِ."
-
-YA_RABBI = "يَا رَبِّ، لَكَ الْحَمْدُ كَمَا يَنْبَغِي لِجَلَالِ وَجْهِكَ وَلِعَظِيمِ سُلْطَانِكَ."
-
-TAWAKKAL = """اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، عَلَيْكَ تَوَكَّلْتُ، وَأَنْتَ رَبُّ الْعَرْشِ الْعَظِيمِ، مَا شَاءَ اللَّهُ كَانَ وَمَا لَمْ يَشَأْ لَمْ يَكُنْ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ، أَعْلَمُ أَنَّ اللَّهَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ، وَأَنَّ اللَّهَ قَدْ أَحَاطَ بِكُلِّ شَيْءٍ عِلْمًا، اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي وَمِنْ شَرِّ كُلِّ دَابَّةٍ أَنْتَ آخِذٌ بِنَاصِيَتِهَا، إِنَّ رَبِّي عَلَىٰ صِرَاطٍ مُسْتَقِيمٍ."""
-
-TAHLIL = "لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ."
-
-SUBHAN = "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ."
-
-
-def shared_tail(period):
-    """Items shared by morning and evening after the time-specific opening."""
-    witness = (
-        "اللَّهُمَّ إِنِّي أَصْبَحْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ، وَجَمِيعَ خَلْقِكَ، أَنَّكَ أَنْتَ اللَّهُ لَا إِلَٰهَ إِلَّا أَنْتَ وَحْدَكَ لَا شَرِيكَ لَكَ، وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ."
-        if period == "morning"
-        else "اللَّهُمَّ إِنِّي أَمْسَيْتُ أُشْهِدُكَ، وَأُشْهِدُ حَمَلَةَ عَرْشِكَ، وَمَلَائِكَتَكَ، وَجَمِيعَ خَلْقِكَ، أَنَّكَ أَنْتَ اللَّهُ لَا إِلَٰهَ إِلَّا أَنْتَ وَحْدَكَ لَا شَرِيكَ لَكَ، وَأَنَّ مُحَمَّدًا عَبْدُكَ وَرَسُولُكَ."
+def ascii_url(url):
+    parts = urlsplit(url)
+    return urlunsplit(
+        (parts.scheme, parts.netloc, quote(parts.path, safe="/%"), parts.query, "")
     )
-    blessing = (
-        "اللَّهُمَّ مَا أَصْبَحَ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ."
-        if period == "morning"
-        else "اللَّهُمَّ مَا أَمْسَىٰ بِي مِنْ نِعْمَةٍ أَوْ بِأَحَدٍ مِنْ خَلْقِكَ فَمِنْكَ وَحْدَكَ لَا شَرِيكَ لَكَ، فَلَكَ الْحَمْدُ وَلَكَ الشُّكْرُ."
-    )
-    blessing_virtue = (
-        "من قالها حين يصبح أدّى شكر يومه."
-        if period == "morning"
-        else "من قالها حين يمسي أدّى شكر يومه."
-    )
-    by_you = (
-        "اللَّهُمَّ بِكَ أَصْبَحْنَا وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ."
-        if period == "morning"
-        else "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ الْمَصِيرُ."
-    )
-    fitra = (
-        "أَصْبَحْنَا عَلَىٰ فِطْرَةِ الْإِسْلَامِ، وَعَلَىٰ كَلِمَةِ الْإِخْلَاصِ، وَعَلَىٰ دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، وَعَلَىٰ مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ."
-        if period == "morning"
-        else "أَمْسَيْنَا عَلَىٰ فِطْرَةِ الْإِسْلَامِ، وَعَلَىٰ كَلِمَةِ الْإِخْلَاصِ، وَعَلَىٰ دِينِ نَبِيِّنَا مُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ، وَعَلَىٰ مِلَّةِ أَبِينَا إِبْرَاهِيمَ حَنِيفًا مُسْلِمًا وَمَا كَانَ مِنَ الْمُشْرِكِينَ."
-    )
-    day_good = (
-        "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ رَبِّ الْعَالَمِينَ، اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ هَٰذَا الْيَوْمِ: فَتْحَهُ وَنَصْرَهُ وَنُورَهُ وَبَرَكَتَهُ وَهُدَاهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِيهِ وَشَرِّ مَا بَعْدَهُ."
-        if period == "morning"
-        else "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ رَبِّ الْعَالَمِينَ، اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ هَٰذِهِ اللَّيْلَةِ: فَتْحَهَا وَنَصْرَهَا وَنُورَهَا وَبَرَكَتَهَا وَهُدَاهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِيهَا وَشَرِّ مَا بَعْدَهَا."
-    )
-    return [
-        item(0, witness, 4, "من قالها أعتقه الله من النار."),
-        item(0, blessing, 1, blessing_virtue),
-        item(0, HASBI, 7, "من قالها كفاه الله ما أهمّه من أمر الدنيا والآخرة."),
-        item(0, BISMILLAH_HIFZ, 3, "لم يضرّه من الله شيء."),
-        item(0, by_you, 1),
-        item(0, fitra, 1),
-        item(0, SUBHAN_ADAD, 3),
-        item(0, AFINI, 3),
-        item(0, KUFR, 3),
-        item(0, AFW, 1),
-        item(0, HAYY, 3),
-        item(0, day_good, 1),
-        item(0, GHAYB, 1),
-        item(0, KALIMAT, 3),
-        item(0, SALAT, 10, "من صلّى على النبي حين يصبح وحين يمسي أدركته شفاعته يوم القيامة."),
-        item(0, SHIRK, 3),
-        item(0, HAMM, 3),
-        item(0, ISTIGHFAR_AZIM, 3),
-        item(0, YA_RABBI, 3),
-    ]
 
 
-def morning_items():
-    opening = """أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَٰذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَٰذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ."""
-    rows = [
-        item(1, KURSI, 1, "من قالها حين يصبح أُجير من الجن حتى يمسي، ومن قالها حين يمسي أُجير من الجن حتى يصبح."),
-        item(2, IKHLAS, 3, "من قالها حين يصبح وحين يمسي كفته من كل شيء، مع المعوذتين."),
-        item(3, FALAQ, 3),
-        item(4, NAS, 3),
-        item(5, opening, 1),
-        item(6, SAYYID, 1, "من قالها موقنًا بها حين يمسي فمات من ليلته دخل الجنة، وكذلك حين يصبح."),
-        item(7, RADITU, 3, "من قالها حين يصبح وحين يمسي كان حقًّا على الله أن يرضيه يوم القيامة."),
-    ]
-    rows.extend(shared_tail("morning"))
-    rows.extend(
-        [
-            item(0, "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا.", 1),
-            item(0, TAWAKKAL, 1),
-            item(
-                0,
-                TAHLIL,
-                100,
-                "كانت له عدل عشر رقاب، وكُتبت له مئة حسنة، ومُحيت عنه مئة سيئة، وكانت له حرزًا من الشيطان.",
+def fetch(url):
+    request = urllib.request.Request(
+        ascii_url(url),
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
             ),
-            item(
-                0,
-                SUBHAN,
-                100,
-                "حُطّت خطاياه وإن كانت مثل زبد البحر. ولم يأت أحد يوم القيامة بأفضل مما جاء به إلا أحد قال مثل ما قال أو زاد عليه.",
-            ),
-            item(
-                0,
-                "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ.",
-                100,
-                "مئة حسنة، ومُحيت عنه مئة سيئة، وكانت له حرزًا من الشيطان حتى يمسي.",
-            ),
-        ]
+            "Accept-Language": "ar,en;q=0.8",
+        },
     )
-    for index, row in enumerate(rows, start=1):
-        row["id"] = index
-    return rows
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=40) as response:
+                return response.read().decode("utf-8")
+        except Exception as error:  # noqa: BLE001 - retry transient network errors
+            last_error = error
+            time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f"failed to fetch {url}: {last_error}")
 
 
-def evening_items():
-    opening = """أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ. رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَٰذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَٰذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ."""
-    rows = [
-        item(1, KURSI, 1, "من قالها حين يصبح أُجير من الجن حتى يمسي، ومن قالها حين يمسي أُجير من الجن حتى يصبح."),
-        item(2, BAQARAH, 1, "من قرأ آيتين من آخر سورة البقرة في ليلة كفتاه."),
-        item(3, IKHLAS, 3, "من قالها حين يصبح وحين يمسي كفته من كل شيء، مع المعوذتين."),
-        item(4, FALAQ, 3),
-        item(5, NAS, 3),
-        item(6, opening, 1),
-        item(7, SAYYID, 1, "من قالها موقنًا بها حين يمسي فمات من ليلته دخل الجنة، وكذلك حين يصبح."),
-        item(8, RADITU, 3, "من قالها حين يصبح وحين يمسي كان حقًّا على الله أن يرضيه يوم القيامة."),
-    ]
-    rows.extend(shared_tail("evening"))
-    rows.extend(
-        [
-            item(
-                0,
-                TAHLIL,
-                100,
-                "كانت له عدل عشر رقاب، وكُتبت له مئة حسنة، ومُحيت عنه مئة سيئة، وكانت له حرزًا من الشيطان.",
-            ),
-            item(0, TAWAKKAL, 1),
-            item(
-                0,
-                SUBHAN,
-                100,
-                "حُطّت خطاياه وإن كانت مثل زبد البحر. ولم يأت أحد يوم القيامة بأفضل مما جاء به إلا أحد قال مثل ما قال أو زاد عليه.",
-            ),
-        ]
-    )
-    for index, row in enumerate(rows, start=1):
-        row["id"] = index
-    return rows
-
-
-def sleep_items():
-    """أذكار النوم والأحلام بالترتيب والعدد كما في إسلام بوك."""
-    return [
-        item(
-            1,
-            "بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ.",
-            1,
-        ),
-        item(
-            2,
-            "اللَّهُمَّ إِنَّكَ خَلَقْتَ نَفْسِي وَأَنْتَ تَوَفَّاهَا، لَكَ مَمَاتُهَا وَمَحْيَاهَا، إِنْ أَحْيَيْتَهَا فَاحْفَظْهَا، وَإِنْ أَمَتَّهَا فَاغْفِرْ لَهَا. اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَافِيَةَ.",
-            1,
-        ),
-        item(3, "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ.", 3),
-        item(4, "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا.", 1),
-        item(
-            5,
-            "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا، وَكَفَانَا، وَآوَانَا، فَكَمْ مِمَّنْ لَا كَافِيَ لَهُ وَلَا مُؤْوِيَ.",
-            1,
-        ),
-        item(
-            6,
-            "اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ فَاطِرَ السَّمَاوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي، وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ، وَأَنْ أَقْتَرِفَ عَلَى نَفْسِي سُوءًا أَوْ أَجُرَّهُ إِلَى مُسْلِمٍ.",
-            1,
-        ),
-        item(
-            7,
-            "اللَّهُمَّ أَسْلَمْتُ نَفْسِي إِلَيْكَ، وَفَوَّضْتُ أَمْرِي إِلَيْكَ، وَوَجَّهْتُ وَجْهِي إِلَيْكَ، وَأَلْجَأْتُ ظَهْرِي إِلَيْكَ، رَغْبَةً وَرَهْبَةً إِلَيْكَ، لَا مَلْجَأَ وَلَا مَنْجَا مِنْكَ إِلَّا إِلَيْكَ، آمَنْتُ بِكِتَابِكَ الَّذِي أَنْزَلْتَ وَبِنَبِيِّكَ الَّذِي أَرْسَلْتَ.",
-            1,
-        ),
-        item(8, "سُبْحَانَ اللَّهِ.", 33),
-        item(9, "الْحَمْدُ لِلَّهِ.", 33),
-        item(10, "اللَّهُ أَكْبَرُ.", 34),
-        item(
-            11,
-            "يَجْمَعُ كَفَّيْهِ ثُمَّ يَنْفُثُ فِيهِمَا وَيَقْرَأُ فِيهِمَا: قُلْ هُوَ اللَّهُ أَحَدٌ، وَقُلْ أَعُوذُ بِرَبِّ الْفَلَقِ، وَقُلْ أَعُوذُ بِرَبِّ النَّاسِ، ثُمَّ يَمْسَحُ بِهِمَا مَا اسْتَطَاعَ مِنْ جَسَدِهِ، يَبْدَأُ بِهِمَا عَلَى رَأْسِهِ وَوَجْهِهِ وَمَا أَقْبَلَ مِنْ جَسَدِهِ.",
-            3,
-        ),
-        item(12, BAQARAH, 1, "من قرأ آيتين من آخر سورة البقرة في ليلة كفتاه."),
-        item(13, KURSI, 1, "أُجير من الجن حتى يصبح."),
-        item(
-            14,
-            "اللَّهُمَّ رَبَّ السَّمَاوَاتِ السَّبْعِ وَمَا أَظَلَّتْ، وَرَبَّ الْأَرَضِينَ وَمَا أَقَلَّتْ، وَرَبَّ الشَّيَاطِينِ وَمَا أَضَلَّتْ، كُنْ لِي جَارًا مِنْ خَلْقِكَ كُلِّهِمْ جَمِيعًا أَنْ يَفْرُطَ عَلَيَّ أَحَدٌ مِنْهُمْ أَوْ أَنْ يَبْغِيَ عَلَيَّ، عَزَّ جَارُكَ، وَجَلَّ ثَنَاؤُكَ، وَلَا إِلَهَ غَيْرُكَ، وَلَا إِلَهَ إِلَّا أَنْتَ.\nأَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّةِ مِنْ غَضَبِهِ وَشَرِّ عِبَادِهِ، وَمِنْ هَمَزَاتِ الشَّيَاطِينِ وَأَنْ يَحْضُرُونِ.",
-            1,
-        ),
-        item(
-            15,
-            "الرُّؤْيَا الصَّالِحَةُ مِنَ اللَّهِ، وَالْحُلُمُ مِنَ الشَّيْطَانِ، فَمَنْ رَأَى شَيْئًا يَكْرَهُهُ فَلْيَنْفُثْ عَنْ شِمَالِهِ ثَلَاثًا وَلْيَتَعَوَّذْ بِاللَّهِ مِنَ الشَّيْطَانِ، فَإِنَّهَا لَا تَضُرُّهُ.",
-            1,
-        ),
-    ]
-
-
-def clean_text(text):
-    text = text.replace("((", "").replace("))", "")
-    text = text.replace("*", "\n")
-    text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    text = re.sub(r"[ ]{2,}", " ", text)
-    return text.strip()
-
-
-def clean_title(text):
-    text = unicodedata.normalize("NFKC", text)
-    text = text.replace("\u0640", "")
-    text = re.sub(r"\s+", " ", text).strip()
-    text = text.replace(" ؟", "؟")
+def plain(fragment):
+    fragment = re.sub(r"(?is)<style[^>]*>.*?</style>", "", fragment)
+    fragment = re.sub(r"(?is)<script[^>]*>.*?</script>", "", fragment)
+    fragment = re.sub(r"(?i)<br\s*/?>", "\n", fragment)
+    fragment = re.sub(r"(?i)</(div|p|li|h[1-6]|tr)>", "\n", fragment)
+    fragment = re.sub(r"(?i)<li[^>]*>", "\n", fragment)
+    fragment = re.sub(r"<[^>]+>", "", fragment)
+    fragment = html.unescape(fragment).replace("\u00a0", " ")
+    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in fragment.splitlines()]
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
     return text
 
 
-def main():
-    source = json.loads(SOURCE.read_text(encoding="utf-8"))
-    categories = [
-        {
-            "id": "morning",
-            "title": "أذكار الصباح",
-            "group": "daily",
-            "daily": True,
-            "blurb": "تُقرأ بعد الفجر",
-            "items": morning_items(),
-        },
-        {
-            "id": "evening",
-            "title": "أذكار المساء",
-            "group": "daily",
-            "daily": True,
-            "blurb": "تُقرأ قبل المغرب أو بعده",
-            "items": evening_items(),
-        },
-    ]
+def names_text(block):
+    """The beautiful names are buttons: the name is visible, the meaning is on the button."""
+    pairs = re.findall(
+        r'data-title="(.*?)"[^>]*>\s*<span class="catbutton[^"]*">(.*?)</span>',
+        block,
+        re.S,
+    )
+    if not pairs:
+        return ""
+    lines = []
+    for meaning, name in pairs:
+        name = plain(name)
+        meaning = plain(meaning)
+        lines.append(f"{name}\n{meaning}" if meaning else name)
+    return "\n\n".join(lines)
 
-    for entry in source:
-        if entry["id"] == 1:
+
+def parse_items(page):
+    rows = re.split(r'class="row zekr-row', page)[1:]
+    items = []
+    for row in rows:
+        zekr = re.search(
+            r'class="zekr zekr-style[^"]*">(.*?)<span class="fa fa-share',
+            row,
+            re.S,
+        )
+        if not zekr:
             continue
-        if entry["id"] == 2:
-            categories.append(
-                {
-                    "id": "c2",
-                    "title": "أذكار النوم والأحلام",
-                    "group": "sleep",
-                    "daily": False,
-                    "items": sleep_items(),
-                }
-            )
+        block = zekr.group(1)
+        heading_match = re.search(
+            r'class="subtitle">(.*?)</div>',
+            block,
+            re.S,
+        )
+        heading = plain(heading_match.group(1)) if heading_match else ""
+        body_html = block
+        if heading_match:
+            body_html = block[heading_match.end() :]
+        text = names_text(body_html) or plain(body_html)
+        if not text and heading:
+            text = heading
+            heading = ""
+        if not text:
             continue
-        group = GROUP_BY_SOURCE_ID.get(entry["id"])
-        if group is None:
-            raise SystemExit(f"missing group for {entry['id']} {entry['category']}")
-        items = []
-        for raw in entry["array"]:
-            items.append(
-                {
-                    "id": raw["id"],
-                    "text": clean_text(raw["text"]),
-                    "count": int(raw["count"]),
-                }
-            )
+        bless_match = re.search(
+            r'class="zekrbless-content">(.*?)</span>',
+            row,
+            re.S,
+        )
+        virtue = plain(bless_match.group(1)) if bless_match else ""
+        count_match = re.search(r'data-count="(\d+)"', row)
+        # The site prints 00 on passages that are read, not counted.
+        count = int(count_match.group(1)) if count_match else 1
+        if count < 1:
+            count = 1
+        item = {"id": len(items) + 1, "text": text, "count": count}
+        if heading:
+            item["heading"] = heading
+        if virtue:
+            item["virtue"] = virtue
+        items.append(item)
+    return items
+
+
+def main():
+    categories = []
+    for category_id, title, url, daily in CATEGORIES:
+        page = fetch(url)
+        items = parse_items(page)
+        if not items:
+            raise SystemExit(f"{title} ({url}) parsed to zero items")
+        repeats = sum(item["count"] for item in items)
+        print(f"{len(items):3} items  {repeats:5} repeats  {title}")
         categories.append(
             {
-                "id": f"c{entry['id']}",
-                "title": clean_title(entry["category"]),
-                "group": group,
-                "daily": False,
+                "id": category_id,
+                "title": title,
+                "group": "book",
+                "daily": daily,
                 "items": items,
             }
         )
+        time.sleep(0.25)
 
-    payload = {
+    library = {
         "title": "ذكر المسلم",
-        "source": "أذكار الصباح والمساء مرتبة على الورد اليومي المشهور، وبقية الأبواب من حصن المسلم لسعيد بن علي بن وهف القحطاني عبر مجموعة Adhkar-json المتاحة بلا قيد.",
-        "groups": GROUPS,
+        "source": "الأبواب ونصوصها وعددها كما هي في أذكار إسلام بوك: https://www.islambook.com/azkar/",
+        "groups": [{"id": "book", "title": ""}],
         "categories": categories,
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"wrote {OUT} categories={len(categories)} morning={len(morning_items())} evening={len(evening_items())}")
+    OUT.write_text(
+        json.dumps(library, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    total = sum(len(category["items"]) for category in categories)
+    print(f"wrote {OUT} — {len(categories)} categories, {total} items")
 
 
 if __name__ == "__main__":

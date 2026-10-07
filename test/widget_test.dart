@@ -35,6 +35,14 @@ void main() {
 
     expect(controller.state.onboardingSeen, isTrue);
     expect(find.text('أذكار الصباح'), findsWidgets);
+    expect(controller.library!.categories, hasLength(27));
+    expect(controller.library!.byId('morning').items, hasLength(31));
+    expect(controller.library!.byId('evening').items, hasLength(30));
+    expect(controller.library!.byId('sleep').items, hasLength(15));
+    expect(
+      controller.library!.categories.map((category) => category.title),
+      containsAll(['تسابيح', 'الرُّقية الشرعية', 'أسماء الله الحسنى']),
+    );
   });
 
   testWidgets('morning counter counts down from the card', (tester) async {

@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         if (query.isEmpty)
-          ..._groups(library, controller)
+          ..._groups(library, controller, width)
         else
           ..._search(library, query),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -80,29 +80,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  List<Widget> _groups(AzkarLibrary library, AppController controller) {
+  List<Widget> _groups(
+    AzkarLibrary library,
+    AppController controller,
+    double width,
+  ) {
+    final columns = width >= 900 ? 3 : 2;
     return [
       for (final group in library.groups)
         if (library.inGroup(group.id).isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-              child: Text(
-                group.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.greenDark,
+          if (group.title.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+                child: Text(
+                  group.title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.greenDark,
+                  ),
                 ),
               ),
             ),
-          ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 280,
-                mainAxisExtent: 124,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                mainAxisExtent: 84,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
@@ -123,7 +129,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> _search(AzkarLibrary library, String query) {
     final categories = library.categories.where((category) {
       return category.title.contains(query) ||
-          category.items.any((item) => item.text.contains(query));
+          category.items.any(
+            (item) =>
+                item.text.contains(query) ||
+                (item.heading?.contains(query) ?? false),
+          );
     }).toList();
     if (categories.isEmpty) {
       return [
@@ -402,7 +412,11 @@ class _WirdCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      finished ? 'اكتمل الورد' : '$blurb · ${fraction(done, total)}',
+                      finished
+                          ? 'اكتمل الورد'
+                          : (blurb.isEmpty
+                                ? fraction(done, total)
+                                : '$blurb · ${fraction(done, total)}'),
                       style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
                     ),
                   ],
@@ -433,38 +447,40 @@ class _CategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = category.items.length;
     final finished = done == total && total > 0;
+    final detail = subtitle ?? (finished ? 'تم' : fraction(done, total));
     return Material(
-      color: finished ? AppColors.done : AppColors.card,
-      borderRadius: BorderRadius.circular(16),
+      color: finished ? AppColors.done : const Color(0xFF1AA888),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: finished ? AppColors.green : AppColors.line),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 category.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                textAlign: TextAlign.center,
+                style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
-                  height: 1.3,
+                  fontSize: 16,
+                  height: 1.35,
+                  color: finished ? AppColors.greenDark : Colors.white,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                subtitle ?? (finished ? 'تم' : fraction(done, total)),
+                detail,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: finished ? AppColors.green : const Color(0xFFE7FFF6),
+                  fontSize: 13,
+                ),
               ),
             ],
           ),

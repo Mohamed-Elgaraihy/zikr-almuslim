@@ -6,6 +6,33 @@ import '../theme/app_theme.dart';
 import 'counter_button.dart';
 import 'mushaf_text.dart';
 
+class _Heading extends StatelessWidget {
+  const _Heading({required this.text, required this.fontSize});
+
+  final String text;
+  final double fontSize;
+
+  bool get _vocalized => RegExp(r'[\u064B-\u0652]').hasMatch(text);
+
+  @override
+  Widget build(BuildContext context) {
+    if (_vocalized) {
+      return MushafText(text: text, fontSize: fontSize * 0.78);
+    }
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontFamily: 'Cairo',
+        fontSize: (fontSize * 0.62).clamp(18, 26),
+        height: 1.5,
+        color: AppColors.greenDark,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
 class DhikrCard extends StatelessWidget {
   const DhikrCard({
     super.key,
@@ -44,6 +71,10 @@ class DhikrCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (item.heading != null) ...[
+            _Heading(text: item.heading!, fontSize: fontSize),
+            const SizedBox(height: 10),
+          ],
           MushafText(text: item.text, fontSize: fontSize),
           if (item.virtue != null) ...[
             const SizedBox(height: 14),
@@ -65,7 +96,15 @@ class DhikrCard extends StatelessWidget {
               tooltip: 'نسخ',
               visualDensity: VisualDensity.compact,
               onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: item.text));
+                await Clipboard.setData(
+                  ClipboardData(
+                    text: [
+                      if (item.heading != null) item.heading,
+                      item.text,
+                      if (item.virtue != null) item.virtue,
+                    ].join('\n'),
+                  ),
+                );
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('نُسخ الذكر')),

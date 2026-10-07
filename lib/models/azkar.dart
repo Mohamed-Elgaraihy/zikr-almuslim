@@ -3,12 +3,14 @@ class AzkarItem {
     required this.id,
     required this.text,
     required this.count,
+    this.heading,
     this.virtue,
   });
 
   final int id;
   final String text;
   final int count;
+  final String? heading;
   final String? virtue;
 
   factory AzkarItem.fromJson(Map<String, dynamic> json) {
@@ -16,6 +18,7 @@ class AzkarItem {
       id: json['id'] as int,
       text: json['text'] as String,
       count: json['count'] as int,
+      heading: json['heading'] as String?,
       virtue: json['virtue'] as String?,
     );
   }
