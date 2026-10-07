@@ -23,7 +23,6 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   final _scroll = ScrollController();
   final _keys = <int, GlobalKey>{};
-  var _aligned = false;
 
   @override
   void initState() {
@@ -42,7 +41,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   GlobalKey _keyFor(int index) => _keys.putIfAbsent(index, GlobalKey.new);
 
   Future<void> _showFirstOpen() async {
-    if (_aligned || !mounted) return;
+    if (!mounted) return;
     final library = widget.controller.library;
     if (library == null) return;
     final category = library.byId(widget.categoryId);
@@ -50,10 +49,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
       (item) => remainingFor(widget.controller.state, category.id, item) > 0,
     );
     if (index <= 0) return;
-    _aligned = true;
     final key = _keyFor(index);
-    for (var step = 0; step < 16; step++) {
-      if (!mounted || !_scroll.hasClients) return;
+    for (var step = 0; step < 24; step++) {
+      if (!mounted) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!_scroll.hasClients) continue;
       final targetContext = key.currentContext;
       if (targetContext != null && targetContext.mounted) {
         await Scrollable.ensureVisible(
@@ -65,13 +65,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
         return;
       }
       final position = _scroll.position;
-      final next = (position.pixels + position.viewportDimension * 0.8).clamp(
+      final next = (position.pixels + position.viewportDimension * 0.85).clamp(
         0.0,
         position.maxScrollExtent,
       );
-      if (next <= position.pixels + 1) return;
-      _scroll.jumpTo(next);
-      await WidgetsBinding.instance.endOfFrame;
+      if (next > position.pixels + 1) {
+        _scroll.jumpTo(next);
+      }
     }
   }
 
