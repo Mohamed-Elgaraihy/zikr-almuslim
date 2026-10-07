@@ -113,6 +113,77 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    window.zikrShare = async function (text, filename) {
+      if (navigator.share) {
+        try {
+          await navigator.share({ text: text, title: filename || 'ذكر المسلم' });
+          return true;
+        } catch (error) {
+          if (error && error.name === 'AbortError') return true;
+        }
+      }
+      if (filename) {
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+        return true;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    };
+    window.zikrPick = function () {
+      return new Promise(function (resolve) {
+        const input = document.createElement('input');
+        let settled = false;
+        function finish(value) {
+          if (settled) return;
+          settled = true;
+          resolve(value);
+        }
+        input.type = 'file';
+        input.accept = '.json,application/json,text/plain';
+        input.onchange = function () {
+          const file = input.files && input.files[0];
+          if (!file) {
+            finish(null);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function () { finish(String(reader.result || '')); };
+          reader.onerror = function () { finish(null); };
+          reader.readAsText(file);
+        };
+        window.addEventListener('focus', function () {
+          setTimeout(function () {
+            if (!input.files || !input.files.length) finish(null);
+          }, 700);
+        }, { once: true });
+        input.click();
+      });
+    };
+    window.zikrWake = null;
+    window.zikrAwake = async function (on) {
+      try {
+        if (!on) {
+          if (window.zikrWake) await window.zikrWake.release();
+          window.zikrWake = null;
+          return;
+        }
+        if (navigator.wakeLock) {
+          window.zikrWake = await navigator.wakeLock.request('screen');
+        }
+      } catch (_) {}
+    };
+  </script>
   <script src="flutter_bootstrap.js" async=""></script>
 
 

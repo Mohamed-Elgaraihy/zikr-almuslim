@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/azkar_repository.dart';
 import '../logic/progress_logic.dart';
 import '../models/azkar.dart';
+import '../logic/backup.dart';
+import '../services/device_bridge.dart';
 import '../services/notification_service.dart';
 
 class AppController extends ChangeNotifier {
@@ -43,6 +45,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> bootstrap() async {
+    _listenForWidget();
     final clockNow = now;
     try {
       library = await _repository.load();
@@ -64,6 +67,7 @@ class AppController extends ChangeNotifier {
     }
     ready = true;
     notifyListeners();
+    _pushWidget();
     if (!enableNotifications) return;
     try {
       await _notifications.init((payload) {
@@ -87,6 +91,30 @@ class AppController extends ChangeNotifier {
     state = next;
     notifyListeners();
     _save();
+    _pushWidget();
+  }
+
+  void _listenForWidget() {
+    DeviceBridge.listen((slot) {
+      if (slot != 'morning' && slot != 'evening') return;
+      pendingCategoryId = slot;
+      notifyListeners();
+    });
+    DeviceBridge.takePendingSlot().then((slot) {
+      if (slot != 'morning' && slot != 'evening') return;
+      pendingCategoryId = slot;
+      notifyListeners();
+    });
+  }
+
+  void _pushWidget() {
+    final loaded = library;
+    if (loaded == null) return;
+    DeviceBridge.updateWidget(
+      day: state.day,
+      morningDone: slotDone(state, loaded, WirdSlot.morning),
+      eveningDone: slotDone(state, loaded, WirdSlot.evening),
+    );
   }
 
   TapResult tap(String categoryId, int itemId, {int step = 1}) {
@@ -125,6 +153,7 @@ class AppController extends ChangeNotifier {
     if (enabled) {
       try {
         await _notifications.requestPermission();
+        await _notifications.requestExactAlarm();
       } catch (error) {
         debugPrint('permission request failed: $error');
       }
@@ -157,6 +186,26 @@ class AppController extends ChangeNotifier {
   void completeOnboarding() {
     if (state.onboardingSeen) return;
     _commit(state.copyWith(onboardingSeen: true));
+  }
+
+  void setShowTashkeel(bool shown) {
+    if (shown == state.showTashkeel) return;
+    _commit(state.copyWith(showTashkeel: shown));
+  }
+
+  void setDarkMode(bool enabled) {
+    if (enabled == state.darkMode) return;
+    _commit(state.copyWith(darkMode: enabled));
+  }
+
+  String backupText() => encodeBackup(state);
+
+  String? restoreBackup(String raw) {
+    final payload = decodeBackup(raw);
+    if (payload == null) return 'هذا النص ليس نسخة من ذكر المسلم.';
+    _commit(applyBackup(state, payload));
+    syncReminders(reschedule: true);
+    return null;
   }
 
   void setFontSize(double size) {
@@ -194,7 +243,8 @@ class AppController extends ChangeNotifier {
     if (library == null) return;
     final clockNow = now;
     var next = rollTo(state, clockNow);
-    var changed = next.day != state.day || next.taps.length != state.taps.length;
+    var changed =
+        next.day != state.day || next.taps.length != state.taps.length;
     if (_notifications.ready) {
       for (final notice in unsentNotices(next, azkar, clockNow)) {
         try {
@@ -230,6 +280,7 @@ class AppController extends ChangeNotifier {
     } else {
       state = next;
     }
+    _pushWidget();
   }
 
   void consumePendingCategory() {

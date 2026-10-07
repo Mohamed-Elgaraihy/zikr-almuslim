@@ -32,6 +32,7 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_onController);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onController());
     if (widget.enableTicker) {
       _ticker = Timer.periodic(const Duration(seconds: 45), (_) {
         widget.controller.syncReminders();
@@ -93,7 +94,8 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
       (Icons.tune_rounded, 'الإعدادات'),
     ];
 
-    if (widget.controller.loadError != null && widget.controller.library == null) {
+    if (widget.controller.loadError != null &&
+        widget.controller.library == null) {
       return Scaffold(
         body: Center(
           child: Padding(
@@ -110,11 +112,13 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
         body: Row(
           children: [
             NavigationRail(
-              backgroundColor: AppColors.card,
+              backgroundColor: context.palette.card,
               selectedIndex: _index,
               onDestinationSelected: (index) => setState(() => _index = index),
               labelType: NavigationRailLabelType.all,
-              selectedIconTheme: const IconThemeData(color: AppColors.greenDark),
+              selectedIconTheme: IconThemeData(
+                color: context.palette.greenDark,
+              ),
               destinations: [
                 for (final destination in destinations)
                   NavigationRailDestination(

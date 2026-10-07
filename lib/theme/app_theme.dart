@@ -27,18 +27,21 @@ TextStyle? _scale(TextStyle? style) {
   );
 }
 
-ThemeData buildTheme() {
+ThemeData buildTheme({bool dark = false}) {
+  final palette = dark ? AppPalette.dark : AppPalette.light;
   final base = ThemeData(
     useMaterial3: true,
+    brightness: dark ? Brightness.dark : Brightness.light,
     fontFamily: 'Cairo',
-    scaffoldBackgroundColor: AppColors.paper,
+    scaffoldBackgroundColor: palette.paper,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.green,
-      primary: AppColors.green,
-      onPrimary: Colors.white,
-      secondary: AppColors.gold,
-      surface: AppColors.paper,
-      onSurface: AppColors.ink,
+      brightness: dark ? Brightness.dark : Brightness.light,
+      primary: dark ? palette.green : AppColors.green,
+      onPrimary: dark ? AppColors.greenDeep : Colors.white,
+      secondary: palette.gold,
+      surface: palette.paper,
+      onSurface: palette.ink,
     ),
   );
   final source = base.textTheme;
@@ -60,6 +63,7 @@ ThemeData buildTheme() {
       labelMedium: _scale(source.labelMedium),
       labelSmall: _scale(source.labelSmall),
     ),
+    extensions: [palette],
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.greenDark,
       foregroundColor: Colors.white,
@@ -73,8 +77,8 @@ ThemeData buildTheme() {
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: AppColors.card,
-      indicatorColor: AppColors.goldSoft,
+      backgroundColor: palette.card,
+      indicatorColor: palette.goldSoft,
       height: 72,
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
@@ -82,14 +86,151 @@ ThemeData buildTheme() {
           fontFamily: 'Cairo',
           fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
           fontSize: 15,
-          color: selected ? AppColors.greenDark : AppColors.inkSoft,
+          color: selected ? palette.greenDark : palette.inkSoft,
         );
       }),
     ),
-    dividerColor: AppColors.line,
+    dividerColor: palette.line,
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.greenDeep,
     ),
   );
+}
+
+class AppPalette extends ThemeExtension<AppPalette> {
+  const AppPalette({
+    required this.paper,
+    required this.paperDeep,
+    required this.ink,
+    required this.inkSoft,
+    required this.green,
+    required this.greenDark,
+    required this.greenDeep,
+    required this.gold,
+    required this.goldSoft,
+    required this.card,
+    required this.line,
+    required this.done,
+    required this.virtue,
+    required this.alert,
+    required this.alertWash,
+  });
+
+  final Color paper;
+  final Color paperDeep;
+  final Color ink;
+  final Color inkSoft;
+  final Color green;
+  final Color greenDark;
+  final Color greenDeep;
+  final Color gold;
+  final Color goldSoft;
+  final Color card;
+  final Color line;
+  final Color done;
+  final Color virtue;
+  final Color alert;
+  final Color alertWash;
+
+  static const light = AppPalette(
+    paper: AppColors.paper,
+    paperDeep: AppColors.paperDeep,
+    ink: AppColors.ink,
+    inkSoft: AppColors.inkSoft,
+    green: AppColors.green,
+    greenDark: AppColors.greenDark,
+    greenDeep: AppColors.greenDeep,
+    gold: AppColors.gold,
+    goldSoft: AppColors.goldSoft,
+    card: AppColors.card,
+    line: AppColors.line,
+    done: AppColors.done,
+    virtue: AppColors.virtue,
+    alert: AppColors.alert,
+    alertWash: AppColors.alertWash,
+  );
+
+  static const dark = AppPalette(
+    paper: Color(0xFF10211B),
+    paperDeep: Color(0xFF1A2E27),
+    ink: Color(0xFFF3F7F4),
+    inkSoft: Color(0xFFB7C6BE),
+    green: Color(0xFF3DDC97),
+    greenDark: Color(0xFFD7F5E8),
+    greenDeep: Color(0xFF04140F),
+    gold: Color(0xFFE2C48A),
+    goldSoft: Color(0xFF3A3326),
+    card: Color(0xFF1A2C25),
+    line: Color(0xFF2C433A),
+    done: Color(0xFF1B3A2E),
+    virtue: Color(0xFF8FCBB0),
+    alert: Color(0xFFE7B07A),
+    alertWash: Color(0xFF3A2A1C),
+  );
+
+  @override
+  AppPalette copyWith({
+    Color? paper,
+    Color? paperDeep,
+    Color? ink,
+    Color? inkSoft,
+    Color? green,
+    Color? greenDark,
+    Color? greenDeep,
+    Color? gold,
+    Color? goldSoft,
+    Color? card,
+    Color? line,
+    Color? done,
+    Color? virtue,
+    Color? alert,
+    Color? alertWash,
+  }) {
+    return AppPalette(
+      paper: paper ?? this.paper,
+      paperDeep: paperDeep ?? this.paperDeep,
+      ink: ink ?? this.ink,
+      inkSoft: inkSoft ?? this.inkSoft,
+      green: green ?? this.green,
+      greenDark: greenDark ?? this.greenDark,
+      greenDeep: greenDeep ?? this.greenDeep,
+      gold: gold ?? this.gold,
+      goldSoft: goldSoft ?? this.goldSoft,
+      card: card ?? this.card,
+      line: line ?? this.line,
+      done: done ?? this.done,
+      virtue: virtue ?? this.virtue,
+      alert: alert ?? this.alert,
+      alertWash: alertWash ?? this.alertWash,
+    );
+  }
+
+  @override
+  AppPalette lerp(ThemeExtension<AppPalette>? other, double t) {
+    if (other is! AppPalette) return this;
+    Color mix(Color a, Color b) => Color.lerp(a, b, t)!;
+    return AppPalette(
+      paper: mix(paper, other.paper),
+      paperDeep: mix(paperDeep, other.paperDeep),
+      ink: mix(ink, other.ink),
+      inkSoft: mix(inkSoft, other.inkSoft),
+      green: mix(green, other.green),
+      greenDark: mix(greenDark, other.greenDark),
+      greenDeep: mix(greenDeep, other.greenDeep),
+      gold: mix(gold, other.gold),
+      goldSoft: mix(goldSoft, other.goldSoft),
+      card: mix(card, other.card),
+      line: mix(line, other.line),
+      done: mix(done, other.done),
+      virtue: mix(virtue, other.virtue),
+      alert: mix(alert, other.alert),
+      alertWash: mix(alertWash, other.alertWash),
+    );
+  }
+}
+
+extension AppPaletteContext on BuildContext {
+  AppPalette get palette =>
+      Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
 }

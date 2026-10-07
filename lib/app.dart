@@ -18,35 +18,35 @@ class ZikrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ذكر المسلم',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child ?? const SizedBox.shrink(),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'ذكر المسلم',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          darkTheme: buildTheme(dark: true),
+          themeMode: controller.state.darkMode
+              ? ThemeMode.dark
+              : ThemeMode.light,
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) {
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          home: !controller.state.onboardingSeen
+              ? OnboardingScreen(onDone: controller.completeOnboarding)
+              : ShellScreen(controller: controller, enableTicker: enableTicker),
         );
       },
-      home: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          if (!controller.state.onboardingSeen) {
-            return OnboardingScreen(onDone: controller.completeOnboarding);
-          }
-          return ShellScreen(
-            controller: controller,
-            enableTicker: enableTicker,
-          );
-        },
-      ),
     );
   }
 }

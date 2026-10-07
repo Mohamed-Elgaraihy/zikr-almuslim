@@ -58,7 +58,9 @@ class _CounterButtonState extends State<CounterButton> {
     final done = widget.done;
     return Semantics(
       button: true,
-      label: done ? 'اكتمل. ${widget.label}' : 'المتبقي ${widget.remaining}. ${widget.label}',
+      label: done
+          ? 'اكتمل. ${widget.label}'
+          : 'المتبقي ${widget.remaining}. ${widget.label}',
       child: SizedBox(
         height: 76,
         child: Stack(
@@ -71,12 +73,15 @@ class _CounterButtonState extends State<CounterButton> {
                     ? null
                     : (_) {
                         _tick();
-                        _rapidStart = Timer(const Duration(milliseconds: 280), () {
-                          _rapid = Timer.periodic(
-                            const Duration(milliseconds: 70),
-                            (_) => _tick(),
-                          );
-                        });
+                        _rapidStart = Timer(
+                          const Duration(milliseconds: 280),
+                          () {
+                            _rapid = Timer.periodic(
+                              const Duration(milliseconds: 70),
+                              (_) => _tick(),
+                            );
+                          },
+                        );
                       },
                 onLongPressEnd: (_) => _stopRapid(),
                 onLongPressCancel: _stopRapid,
@@ -88,7 +93,11 @@ class _CounterButtonState extends State<CounterButton> {
                   ),
                   alignment: Alignment.center,
                   child: done
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 36)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        )
                       : Text(
                           formatCount(widget.remaining),
                           style: const TextStyle(

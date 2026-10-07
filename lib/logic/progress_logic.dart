@@ -49,6 +49,8 @@ class PersistedState {
     this.onboardingSeen = false,
     this.morningPingDay,
     this.eveningPingDay,
+    this.showTashkeel = true,
+    this.darkMode = false,
   });
 
   final String day;
@@ -67,6 +69,8 @@ class PersistedState {
   final bool onboardingSeen;
   final String? morningPingDay;
   final String? eveningPingDay;
+  final bool showTashkeel;
+  final bool darkMode;
 
   factory PersistedState.fresh(DateTime now) {
     return PersistedState(day: formatDay(now));
@@ -92,6 +96,8 @@ class PersistedState {
     bool clearMorningPing = false,
     String? eveningPingDay,
     bool clearEveningPing = false,
+    bool? showTashkeel,
+    bool? darkMode,
   }) {
     return PersistedState(
       day: day ?? this.day,
@@ -114,6 +120,8 @@ class PersistedState {
       eveningPingDay: clearEveningPing
           ? null
           : (eveningPingDay ?? this.eveningPingDay),
+      showTashkeel: showTashkeel ?? this.showTashkeel,
+      darkMode: darkMode ?? this.darkMode,
     );
   }
 
@@ -135,6 +143,8 @@ class PersistedState {
       'onboardingSeen': onboardingSeen,
       'morningPingDay': morningPingDay,
       'eveningPingDay': eveningPingDay,
+      'showTashkeel': showTashkeel,
+      'darkMode': darkMode,
     };
   }
 
@@ -175,6 +185,8 @@ class PersistedState {
       onboardingSeen: json['onboardingSeen'] as bool? ?? false,
       morningPingDay: json['morningPingDay'] as String?,
       eveningPingDay: json['eveningPingDay'] as String?,
+      showTashkeel: json['showTashkeel'] as bool? ?? true,
+      darkMode: json['darkMode'] as bool? ?? false,
     );
   }
 }
@@ -407,7 +419,11 @@ PersistedState _awardGoal(PersistedState state) {
       : 1;
   final days = [...state.goalDays.where((day) => day != state.day), state.day];
   final trimmed = days.length > 120 ? days.sublist(days.length - 120) : days;
-  return state.copyWith(streak: streak, lastGoalDay: state.day, goalDays: trimmed);
+  return state.copyWith(
+    streak: streak,
+    lastGoalDay: state.day,
+    goalDays: trimmed,
+  );
 }
 
 PersistedState _revokeTodayGoal(PersistedState state) {
@@ -417,11 +433,7 @@ PersistedState _revokeTodayGoal(PersistedState state) {
     return state.copyWith(streak: 0, goalDays: days, clearLastGoal: true);
   }
   final streak = state.streak > 0 ? state.streak - 1 : 0;
-  return state.copyWith(
-    streak: streak,
-    lastGoalDay: days.last,
-    goalDays: days,
-  );
+  return state.copyWith(streak: streak, lastGoalDay: days.last, goalDays: days);
 }
 
 TapResult registerTap(

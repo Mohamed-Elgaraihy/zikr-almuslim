@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zikr_almuslim/logic/arabic_text.dart';
+import 'package:zikr_almuslim/logic/backup.dart';
 import 'package:zikr_almuslim/logic/progress_logic.dart';
 import 'package:zikr_almuslim/models/azkar.dart';
 
@@ -46,16 +48,23 @@ void main() {
     expect(extra.changed, isFalse);
   });
 
-  test('morning and evening together award a streak and a missed day breaks it', () {
-    var state = PersistedState(day: '2026-10-05', streak: 2, lastGoalDay: '2026-10-04');
-    state = registerTap(state, library, 'morning', 1).state;
-    state = registerTap(state, library, 'morning', 2, step: 3).state;
-    final evening = registerTap(state, library, 'evening', 1);
-    expect(evening.goalCompleted, isTrue);
-    expect(evening.state.streak, 3);
-    expect(visibleStreak(evening.state, '2026-10-05'), 3);
-    expect(visibleStreak(evening.state, '2026-10-07'), 0);
-  });
+  test(
+    'morning and evening together award a streak and a missed day breaks it',
+    () {
+      var state = PersistedState(
+        day: '2026-10-05',
+        streak: 2,
+        lastGoalDay: '2026-10-04',
+      );
+      state = registerTap(state, library, 'morning', 1).state;
+      state = registerTap(state, library, 'morning', 2, step: 3).state;
+      final evening = registerTap(state, library, 'evening', 1);
+      expect(evening.goalCompleted, isTrue);
+      expect(evening.state.streak, 3);
+      expect(visibleStreak(evening.state, '2026-10-05'), 3);
+      expect(visibleStreak(evening.state, '2026-10-07'), 0);
+    },
+  );
 
   test('a new day clears taps and keeps yesterday streak visible', () {
     final done = PersistedState(
@@ -86,30 +95,33 @@ void main() {
     expect(dailyGoalMet(cleared, library), isFalse);
   });
 
-  test('the reminder appears only after its time and only if the wird is open', () {
-    final morning = DateTime(2026, 10, 5, 6, 30);
-    final early = PersistedState(day: '2026-10-05');
-    expect(overdueNotices(early, library, DateTime(2026, 10, 5, 5)), isEmpty);
+  test(
+    'the reminder appears only after its time and only if the wird is open',
+    () {
+      final morning = DateTime(2026, 10, 5, 6, 30);
+      final early = PersistedState(day: '2026-10-05');
+      expect(overdueNotices(early, library, DateTime(2026, 10, 5, 5)), isEmpty);
 
-    final due = overdueNotices(early, library, morning);
-    expect(due.map((notice) => notice.slot), [WirdSlot.morning]);
+      final due = overdueNotices(early, library, morning);
+      expect(due.map((notice) => notice.slot), [WirdSlot.morning]);
 
-    final read = registerTap(
-      registerTap(early, library, 'morning', 1).state,
-      library,
-      'morning',
-      2,
-      step: 3,
-    ).state;
-    expect(
-      overdueNotices(read, library, morning).map((notice) => notice.slot),
-      isEmpty,
-    );
+      final read = registerTap(
+        registerTap(early, library, 'morning', 1).state,
+        library,
+        'morning',
+        2,
+        step: 3,
+      ).state;
+      expect(
+        overdueNotices(read, library, morning).map((notice) => notice.slot),
+        isEmpty,
+      );
 
-    final sent = markSent(early, WirdSlot.morning);
-    expect(unsentNotices(sent, library, morning), isEmpty);
-    expect(overdueNotices(sent, library, morning), isNotEmpty);
-  });
+      final sent = markSent(early, WirdSlot.morning);
+      expect(unsentNotices(sent, library, morning), isEmpty);
+      expect(overdueNotices(sent, library, morning), isNotEmpty);
+    },
+  );
 
   test('the natural dhikr size is 28 unless the reader chose another', () {
     final now = DateTime(2026, 10, 5);
@@ -141,5 +153,49 @@ void main() {
     }, now);
     expect(kept.fontSize, 36);
     expect(kept.copyWith().toJson()['fontTuned'], isTrue);
+  });
+
+  test('diacritics can be hidden without dropping the letters', () {
+    expect(stripTashkeel('الْحَمْدُ لِلَّهِ'), 'الحمد لله');
+    expect(stripTashkeel('بِسْمِ'), 'بسم');
+  });
+
+  test('a backup restores today and leaves an older day off the counter', () {
+    final current = PersistedState(
+      day: '2026-10-07',
+      taps: {'morning:1': 1},
+      streak: 1,
+    );
+    final today = decodeBackup(
+      encodeBackup(
+        PersistedState(
+          day: '2026-10-07',
+          taps: {'evening:1': 2},
+          streak: 9,
+          lastGoalDay: '2026-10-06',
+          goalDays: ['2026-10-06'],
+        ),
+      ),
+    );
+    expect(today, isNotNull);
+    final applied = applyBackup(current, today!);
+    expect(applied.taps['evening:1'], 2);
+    expect(applied.taps.containsKey('morning:1'), isFalse);
+    expect(applied.streak, 9);
+    expect(applied.goalDays, ['2026-10-06']);
+
+    final older = decodeBackup(
+      '{"kind":"zikr-backup","version":1,"day":"2026-10-01","taps":{"morning:1":5},"streak":4,"lastGoalDay":"2026-10-01","goalDays":["2026-10-01"]}',
+    );
+    final kept = applyBackup(current, older!);
+    expect(kept.taps['morning:1'], 1);
+    expect(kept.streak, 4);
+
+    expect(decodeBackup('ليس نسخة'), isNull);
+    final fresh = PersistedState.fromJson({
+      'day': '2026-10-07',
+    }, DateTime(2026, 10, 7));
+    expect(fresh.showTashkeel, isTrue);
+    expect(fresh.darkMode, isFalse);
   });
 }

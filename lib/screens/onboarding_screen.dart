@@ -19,18 +19,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _pages = [
     _GuidePage(
       title: 'ذكر المسلم',
-      body:
-          'وردك اليومي في مكان واحد: أذكار الصباح والمساء، والنوم، والصلاة، وبقية الأبواب كما في أذكار إسلام بوك.',
+      body: 'وردك اليومي في مكان واحد: أذكار الصباح والمساء، والنوم، والصلاة، وبقية الأبواب كما في أذكار إسلام بوك.',
     ),
     _GuidePage(
       title: 'عدّ بلمسة واحدة',
-      body:
-          'العداد شريط أخضر تحت الذكر. اضغطه مرة لكل تسبيحة، وأبقِ إصبعك عليه ليسرع العدّ حتى تظهر علامة الصح.',
+      body: 'العداد شريط أخضر تحت الذكر. اضغطه مرة لكل تسبيحة، وأبقِ إصبعك عليه ليسرع العدّ حتى تظهر علامة الصح.',
     ),
     _GuidePage(
       title: 'لا يفوتك الورد',
-      body:
-          'شاشة اليوم تُريك ما تبقّى وكم يومًا واصلت. وإذا جاء وقت الصباح أو المساء ولم تقرأ، يصلك تذكير لطيف.',
+      body: 'شاشة اليوم تُريك ما تبقّى وكم يومًا واصلت. وإذا جاء وقت الصباح أو المساء ولم تقرأ، يصلك تذكير لطيف.',
     ),
   ];
 
@@ -153,7 +150,10 @@ class _PageBody extends StatelessWidget {
       child: Column(
         children: [
           const Spacer(),
-          if (index == 0) const BrandMark(size: 168) else _Illustration(index: index),
+          if (index == 0)
+            const BrandMark(size: 168)
+          else
+            _Illustration(index: index),
           const SizedBox(height: 36),
           Text(
             page.title,
@@ -220,7 +220,10 @@ class _Illustration extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white.withValues(alpha: 0.06),
-        border: Border.all(color: AppColors.gold.withValues(alpha: 0.7), width: 3),
+        border: Border.all(
+          color: AppColors.gold.withValues(alpha: 0.7),
+          width: 3,
+        ),
       ),
       alignment: Alignment.center,
       child: const Icon(

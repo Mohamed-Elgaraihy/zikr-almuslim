@@ -16,11 +16,7 @@ class PatternHeader extends StatelessWidget {
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       child: CustomPaint(
         painter: const _StarPatternPainter(),
-        child: SizedBox(
-          width: double.infinity,
-          height: height,
-          child: child,
-        ),
+        child: SizedBox(width: double.infinity, height: height, child: child),
       ),
     );
   }

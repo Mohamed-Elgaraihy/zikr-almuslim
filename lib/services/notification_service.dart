@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -88,7 +89,11 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin
           >();
-      return await ios?.requestPermissions(alert: true, badge: true, sound: true) ??
+      return await ios?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
           false;
     }
     if (defaultTargetPlatform == TargetPlatform.macOS) {
@@ -96,10 +101,27 @@ class NotificationService {
           .resolvePlatformSpecificImplementation<
             MacOSFlutterLocalNotificationsPlugin
           >();
-      return await mac?.requestPermissions(alert: true, badge: true, sound: true) ??
+      return await mac?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
           false;
     }
     return true;
+  }
+
+  Future<void> requestExactAlarm() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    try {
+      await android?.requestExactAlarmsPermission();
+    } catch (error) {
+      debugPrint('exact alarm permission: $error');
+    }
   }
 
   Future<void> showNow({
@@ -182,13 +204,43 @@ class NotificationService {
     String payload,
   ) async {
     final scheduled = tz.TZDateTime.from(when, tz.local);
-    await _plugin.zonedSchedule(
+    try {
+      await _zoned(
+        id,
+        title,
+        body,
+        scheduled,
+        payload,
+        AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } on PlatformException catch (error) {
+      debugPrint('exact schedule failed, using inexact: $error');
+      await _zoned(
+        id,
+        title,
+        body,
+        scheduled,
+        payload,
+        AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
+  }
+
+  Future<void> _zoned(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime scheduled,
+    String payload,
+    AndroidScheduleMode mode,
+  ) {
+    return _plugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
       scheduledDate: scheduled,
       notificationDetails: _details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: mode,
       payload: payload,
     );
   }

@@ -58,14 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 hintText: 'ابحث في الأبواب أو نص الذكر',
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
-                fillColor: AppColors.card,
+                fillColor: context.palette.card,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.line),
+                  borderSide: BorderSide(color: context.palette.line),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.line),
+                  borderSide: BorderSide(color: context.palette.line),
                 ),
               ),
             ),
@@ -95,10 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
                 child: Text(
                   group.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.greenDark,
+                    color: context.palette.greenDark,
                   ),
                 ),
               ),
@@ -251,7 +251,10 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: AppColors.goldSoft),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
         ],
       ),
     );
@@ -273,7 +276,7 @@ class _ReminderBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Material(
-        color: AppColors.alertWash,
+        color: context.palette.alertWash,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
@@ -282,16 +285,19 @@ class _ReminderBanner extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                const Icon(Icons.notifications_active_rounded, color: AppColors.alert),
+                Icon(
+                  Icons.notifications_active_rounded,
+                  color: context.palette.alert,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'تذكير',
                         style: TextStyle(
-                          color: AppColors.alert,
+                          color: context.palette.alert,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -299,7 +305,7 @@ class _ReminderBanner extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_left_rounded, color: AppColors.alert),
+                Icon(Icons.chevron_left_rounded, color: context.palette.alert),
               ],
             ),
           ),
@@ -339,13 +345,7 @@ class _FeaturedRow extends StatelessWidget {
       onTap: () => onOpen('evening'),
     );
     if (!wide) {
-      return Column(
-        children: [
-          morning,
-          const SizedBox(height: 10),
-          evening,
-        ],
-      );
+      return Column(children: [morning, const SizedBox(height: 10), evening]);
     }
     return Row(
       children: [
@@ -378,7 +378,7 @@ class _WirdCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final finished = done == total && total > 0;
     return Material(
-      color: AppColors.card,
+      color: context.palette.card,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -388,14 +388,16 @@ class _WirdCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: finished ? AppColors.green : AppColors.line,
+              color: finished ? context.palette.green : context.palette.line,
             ),
           ),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: finished ? AppColors.done : AppColors.goldSoft,
-                foregroundColor: AppColors.greenDark,
+                backgroundColor: finished
+                    ? context.palette.done
+                    : context.palette.goldSoft,
+                foregroundColor: context.palette.greenDark,
                 child: Icon(finished ? Icons.check_rounded : icon),
               ),
               const SizedBox(width: 12),
@@ -405,10 +407,10 @@ class _WirdCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 18,
-                        color: AppColors.greenDark,
+                        color: context.palette.greenDark,
                       ),
                     ),
                     Text(
@@ -417,7 +419,10 @@ class _WirdCard extends StatelessWidget {
                           : (blurb.isEmpty
                                 ? fraction(done, total)
                                 : '$blurb · ${fraction(done, total)}'),
-                      style: const TextStyle(color: AppColors.inkSoft, fontSize: 15),
+                      style: TextStyle(
+                        color: context.palette.inkSoft,
+                        fontSize: 15,
+                      ),
                     ),
                   ],
                 ),
@@ -449,7 +454,7 @@ class _CategoryTile extends StatelessWidget {
     final finished = done == total && total > 0;
     final detail = subtitle ?? (finished ? 'تم' : fraction(done, total));
     return Material(
-      color: finished ? AppColors.done : const Color(0xFF1AA888),
+      color: finished ? context.palette.done : const Color(0xFF1AA888),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -468,7 +473,7 @@ class _CategoryTile extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                   height: 1.35,
-                  color: finished ? AppColors.greenDark : Colors.white,
+                  color: finished ? context.palette.greenDark : Colors.white,
                 ),
               ),
               const SizedBox(height: 4),
@@ -478,7 +483,9 @@ class _CategoryTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: finished ? AppColors.green : const Color(0xFFE7FFF6),
+                  color: finished
+                      ? context.palette.green
+                      : const Color(0xFFE7FFF6),
                   fontSize: 13,
                 ),
               ),

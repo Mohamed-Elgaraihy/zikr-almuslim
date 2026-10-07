@@ -7,7 +7,9 @@ import 'package:zikr_almuslim/state/app_controller.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('first launch explains the app, then opens the wird', (tester) async {
+  testWidgets('first launch explains the app, then opens the wird', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final controller = AppController(enableNotifications: false);
     await tester.runAsync(() => controller.bootstrap());

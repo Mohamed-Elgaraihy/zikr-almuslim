@@ -14,10 +14,9 @@ class InfoScreen extends StatelessWidget {
     var opened = await openInBrowser(kDeveloperSite);
     if (!opened) {
       try {
-        opened = await const MethodChannel('zikr/links').invokeMethod<bool>(
-              'open',
-              {'url': kDeveloperSite},
-            ) ??
+        opened =
+            await const MethodChannel('zikr/links')
+                .invokeMethod<bool>('open', {'url': kDeveloperSite}) ??
             false;
       } on PlatformException {
         opened = false;
@@ -27,7 +26,9 @@ class InfoScreen extends StatelessWidget {
     }
     if (!context.mounted || opened) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تعذّر فتح الموقع. الرابط أعلاه يمكن نسخه.')),
+      const SnackBar(
+        content: Text('تعذّر فتح الموقع. الرابط أعلاه يمكن نسخه.'),
+      ),
     );
   }
 
@@ -46,10 +47,10 @@ class InfoScreen extends StatelessWidget {
                 if (block.heading != null) ...[
                   Text(
                     block.heading!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.greenDark,
+                      color: context.palette.greenDark,
                       height: 1.4,
                     ),
                   ),
@@ -57,10 +58,10 @@ class InfoScreen extends StatelessWidget {
                 ],
                 Text(
                   block.body,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     height: 1.85,
-                    color: AppColors.ink,
+                    color: context.palette.ink,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -68,9 +69,9 @@ class InfoScreen extends StatelessWidget {
               if (kind.showsWebsite) ...[
                 SelectableText(
                   kDeveloperSite,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: AppColors.green,
+                    color: context.palette.green,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -85,7 +86,10 @@ class InfoScreen extends StatelessWidget {
                 const SizedBox(height: 18),
                 Text(
                   'الإصدار $kAppVersionLabel',
-                  style: const TextStyle(color: AppColors.inkSoft, fontSize: 14),
+                  style: TextStyle(
+                    color: context.palette.inkSoft,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ],

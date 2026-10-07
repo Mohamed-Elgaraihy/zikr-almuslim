@@ -21,7 +21,7 @@ class MushafText extends StatelessWidget {
       fontFamilyFallback: const ['Amiri', 'Cairo'],
       fontSize: fontSize,
       height: 1.8,
-      color: AppColors.ink,
+      color: context.palette.ink,
     );
     final spans = <InlineSpan>[];
     var cursor = 0;
@@ -73,7 +73,9 @@ class _AyahMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final height = fontSize * 0.92;
-    final width = number.length > 1 ? height + (number.length - 1) * fontSize * 0.28 : height;
+    final width = number.length > 1
+        ? height + (number.length - 1) * fontSize * 0.28
+        : height;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Container(
@@ -82,7 +84,7 @@ class _AyahMark extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(height),
-          border: Border.all(color: AppColors.ink, width: 1.4),
+          border: Border.all(color: context.palette.ink, width: 1.4),
         ),
         child: Text(
           number,
@@ -92,7 +94,7 @@ class _AyahMark extends StatelessWidget {
             fontSize: fontSize * (number.length > 2 ? 0.3 : 0.38),
             height: 1,
             fontWeight: FontWeight.w700,
-            color: AppColors.ink,
+            color: context.palette.ink,
           ),
         ),
       ),
