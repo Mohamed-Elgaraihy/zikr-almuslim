@@ -1,11 +1,11 @@
 {
-    "name": "ذكر المسلم",
+    "name": "ذكر المسلم - ZikrAlmuslim",
     "short_name": "ذكر المسلم",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#06261E",
     "theme_color": "#0E6B4F",
-    "description": "أذكار الصباح والمساء وبقية الحصن، بعدّاد يومي وتذكير.",
+    "description": "تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.",
     "orientation": "portrait-primary",
     "lang": "ar",
     "dir": "rtl",

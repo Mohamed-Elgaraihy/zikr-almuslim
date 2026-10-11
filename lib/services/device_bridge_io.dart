@@ -55,6 +55,16 @@ Future<void> updateWidget({
   }
 }
 
+Future<void> allowBackgroundReminders() async {
+  try {
+    await _channel.invokeMethod<bool>('allowBackground');
+  } on MissingPluginException {
+    return;
+  } on PlatformException {
+    return;
+  }
+}
+
 Future<String?> takePendingSlot() async {
   try {
     return await _channel.invokeMethod<String>('takePendingSlot');

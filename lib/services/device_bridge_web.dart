@@ -41,6 +41,8 @@ Future<void> updateWidget({
   required bool eveningDone,
 }) async {}
 
+Future<void> allowBackgroundReminders() async {}
+
 Future<String?> takePendingSlot() async => null;
 
 void listen(void Function(String slot) onSlot) {}

@@ -83,7 +83,11 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeScreen(controller: widget.controller, onOpen: _open),
+      HomeScreen(
+        controller: widget.controller,
+        onOpen: _open,
+        showAd: _index == 0,
+      ),
       DashboardScreen(controller: widget.controller, onOpen: _open),
       SettingsScreen(controller: widget.controller),
     ];
@@ -128,31 +132,14 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
               ],
             ),
             const VerticalDivider(width: 1),
-            Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1080),
-                  child: body,
-                ),
-              ),
-            ),
+            Expanded(child: body),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 860),
-            child: body,
-          ),
-        ),
-      ),
+      body: SafeArea(bottom: false, child: body),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),

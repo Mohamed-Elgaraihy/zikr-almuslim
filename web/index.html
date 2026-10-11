@@ -16,7 +16,49 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="ذكر المسلم: أذكار الصباح والمساء وبقية أبواب إسلام بوك، بعدّاد يومي وتذكير.">
+  <title>ذكر المسلم - ZikrAlmuslim</title>
+  <meta name="description" content="ذكر المسلم تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.">
+  <meta name="application-name" content="ذكر المسلم - ZikrAlmuslim">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="googlebot" content="index, follow">
+  <meta name="theme-color" content="#0E6B4F">
+  <link rel="canonical" href="https://zikralmuslim.moelgaraihy.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_AR">
+  <meta property="og:site_name" content="ذكر المسلم - ZikrAlmuslim">
+  <meta property="og:title" content="ذكر المسلم - ZikrAlmuslim">
+  <meta property="og:description" content="ذكر المسلم تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.">
+  <meta property="og:url" content="https://zikralmuslim.moelgaraihy.com/">
+  <meta property="og:image" content="https://zikralmuslim.moelgaraihy.com/icons/Icon-512.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ذكر المسلم - ZikrAlmuslim">
+  <meta name="twitter:description" content="ذكر المسلم تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.">
+  <meta name="twitter:image" content="https://zikralmuslim.moelgaraihy.com/icons/Icon-512.png">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "ذكر المسلم - ZikrAlmuslim",
+      "alternateName": ["ذكر المسلم", "ZikrAlmuslim"],
+      "url": "https://zikralmuslim.moelgaraihy.com/",
+      "description": "تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.",
+      "inLanguage": "ar",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Web",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "محمد الجرايحي",
+        "url": "https://moelgaraihy.com"
+      },
+      "image": "https://zikralmuslim.moelgaraihy.com/icons/Icon-512.png"
+    }
+  </script>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -26,8 +68,6 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
-
-  <title>ذكر المسلم</title>
   <style>
     body { margin: 0; background: #06261E; }
   </style>
@@ -100,6 +140,10 @@
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
 </head>
 <body>
+  <noscript>
+    <h1>ذكر المسلم - ZikrAlmuslim</h1>
+    <p>تطبيق مجاني لأذكار الصباح والمساء وبقية الأبواب، بعدّاد يومي وتذكير إذا فات الورد. بلا حساب.</p>
+  </noscript>
   <picture id="splash">
       <source srcset="splash/img/light-1x.png 1x, splash/img/light-2x.png 2x, splash/img/light-3x.png 3x, splash/img/light-4x.png 4x" media="(prefers-color-scheme: light)">
       <source srcset="splash/img/dark-1x.png 1x, splash/img/dark-2x.png 2x, splash/img/dark-3x.png 3x, splash/img/dark-4x.png 4x" media="(prefers-color-scheme: dark)">
@@ -114,6 +158,11 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script>
+    window.zikrPushAd = function () {
+      try {
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (_) {}
+    };
     window.zikrShare = async function (text, filename) {
       if (navigator.share) {
         try {
@@ -183,6 +232,13 @@
         }
       } catch (_) {}
     };
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (reg) { reg.unregister(); });
+      });
+    }
   </script>
   <script src="flutter_bootstrap.js" async=""></script>
 

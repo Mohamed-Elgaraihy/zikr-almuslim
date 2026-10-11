@@ -111,6 +111,15 @@ class NotificationService {
     return true;
   }
 
+  Future<bool> canScheduleExact() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return true;
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await android?.canScheduleExactNotifications() ?? true;
+  }
+
   Future<void> requestExactAlarm() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     final android = _plugin

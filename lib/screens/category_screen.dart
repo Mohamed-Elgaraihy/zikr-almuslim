@@ -5,6 +5,7 @@ import '../services/device_bridge.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dhikr_card.dart';
+import '../widgets/placed_ad.dart';
 
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({
@@ -86,6 +87,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final done = completedItems(controller.state, category);
     final total = category.items.length;
     final progress = total == 0 ? 0.0 : done / total;
+    final adAfter = total > 3 ? 2 : total - 1;
 
     return Scaffold(
       appBar: AppBar(
@@ -125,11 +127,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
         ),
       ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: ListView(
+      body: ListView(
             controller: _scroll,
             padding: const EdgeInsets.only(top: 16, bottom: 28),
             children: [
@@ -157,7 +155,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                   ),
                 ),
-              for (final entry in category.items.indexed)
+              for (final entry in category.items.indexed) ...[
                 KeyedSubtree(
                   key: _keyFor(entry.$1),
                   child: DhikrCard(
@@ -196,9 +194,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         controller.clearItem(category.id, entry.$2.id),
                   ),
                 ),
+                if (entry.$1 == adAfter) const PlacedAd(),
+              ],
             ],
-          ),
-        ),
       ),
     );
   }

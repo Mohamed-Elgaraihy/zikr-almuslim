@@ -1,0 +1,43 @@
+AddType application/wasm .wasm
+
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
+
+<FilesMatch "\.wasm$">
+  ForceType application/wasm
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Accept-Encoding} br
+  RewriteCond %{REQUEST_FILENAME}.br -f
+  RewriteRule ^(.+\.wasm)$ $1.br [L]
+</IfModule>
+
+<FilesMatch "\.wasm\.br$">
+  ForceType application/wasm
+  Header set Content-Encoding br
+  Header append Vary Accept-Encoding
+</FilesMatch>
+
+<FilesMatch "\.br$">
+  SetEnv no-gzip 1
+  SetEnv no-brotli 1
+</FilesMatch>
+
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS application/wasm application/javascript application/x-javascript application/json text/css text/html font/ttf application/font-sfnt
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/wasm application/javascript application/x-javascript application/json text/css text/html font/ttf application/font-sfnt
+</IfModule>
+
+DirectoryIndex index.html
+
+<IfModule mod_headers.c>
+  <FilesMatch "^(index\.html|main\.dart\.js|flutter\.js|flutter_bootstrap\.js|flutter_service_worker\.js|version\.json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>

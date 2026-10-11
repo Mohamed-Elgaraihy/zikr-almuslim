@@ -148,12 +148,28 @@ class AppController extends ChangeNotifier {
     _commit(state.copyWith(hintSeen: true));
   }
 
+  Future<void> allowBackgroundReminders() =>
+      DeviceBridge.allowBackgroundReminders();
+
+  Future<void> prepareLaunch() async {
+    if (!enableNotifications) return;
+    try {
+      await _notifications.requestPermission();
+      if (state.remindersOn && !await _notifications.canScheduleExact()) {
+        await _notifications.requestExactAlarm();
+      }
+    } catch (error) {
+      debugPrint('launch permission failed: $error');
+    }
+  }
+
   Future<void> setReminders(bool enabled) async {
     _commit(state.copyWith(remindersOn: enabled));
     if (enabled) {
       try {
         await _notifications.requestPermission();
         await _notifications.requestExactAlarm();
+        await DeviceBridge.allowBackgroundReminders();
       } catch (error) {
         debugPrint('permission request failed: $error');
       }

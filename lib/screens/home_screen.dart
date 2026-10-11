@@ -5,12 +5,19 @@ import '../models/azkar.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pattern_painter.dart';
+import '../widgets/placed_ad.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.controller, required this.onOpen});
+  const HomeScreen({
+    super.key,
+    required this.controller,
+    required this.onOpen,
+    this.showAd = true,
+  });
 
   final AppController controller;
   final void Function(String categoryId) onOpen;
+  final bool showAd;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -49,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        if (widget.showAd) const SliverToBoxAdapter(child: PlacedAd()),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -85,7 +93,13 @@ class _HomeScreenState extends State<HomeScreen> {
     AppController controller,
     double width,
   ) {
-    final columns = width >= 900 ? 3 : 2;
+    final columns = width >= 1500
+        ? 5
+        : width >= 1200
+        ? 4
+        : width >= 800
+        ? 3
+        : 2;
     return [
       for (final group in library.groups)
         if (library.inGroup(group.id).isNotEmpty) ...[

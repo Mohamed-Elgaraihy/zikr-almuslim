@@ -27,6 +27,9 @@ class DeviceBridge {
     );
   }
 
+  static Future<void> allowBackgroundReminders() =>
+      bridge.allowBackgroundReminders();
+
   static Future<String?> takePendingSlot() => bridge.takePendingSlot();
 
   static void listen(void Function(String slot) onSlot) =>

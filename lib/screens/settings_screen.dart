@@ -15,7 +15,11 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = controller.state;
-    return ListView(
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 880),
+        child: ListView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
       children: [
         Text(
@@ -73,6 +77,14 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   onPicked: controller.setEveningTime,
                 ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('العمل في الخلفية'),
+                subtitle: const Text(
+                  'بعض الأجهزة تجمّد التذكير. اسمح بالبطارية، ثم فعّل التشغيل التلقائي إن ظهرت قائمته.',
+                ),
+                onTap: controller.allowBackgroundReminders,
               ),
               const SizedBox(height: 4),
               SizedBox(
@@ -234,6 +246,8 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ],
+        ),
+      ),
     );
   }
 
