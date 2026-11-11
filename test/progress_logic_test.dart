@@ -160,6 +160,19 @@ void main() {
     expect(stripTashkeel('بِسْمِ'), 'بسم');
   });
 
+  test('arabic search treats alef, teh marbuta, and alef maksura as equal', () {
+    expect(normalizeArabic('أَذْكَار'), 'اذكار');
+    expect(normalizeArabic('إسلام'), 'اسلام');
+    expect(normalizeArabic('آية'), 'ايه');
+    expect(normalizeArabic('صلاة'), 'صلاه');
+    expect(normalizeArabic('موسى'), 'موسي');
+    expect(normalizeArabic('ٱلْحَمْدُ'), 'الحمد');
+    expect(arabicContains('أَذْكَارُ الصَّبَاحِ', 'اذكار الصباح'), isTrue);
+    expect(arabicContains('أذكار الصلاة', 'صلاه'), isTrue);
+    expect(arabicContains('هدى', 'هدي'), isTrue);
+    expect(arabicContains('صلاة', 'صيام'), isFalse);
+  });
+
   test('a backup restores today and leaves an older day off the counter', () {
     final current = PersistedState(
       day: '2026-10-07',
@@ -197,5 +210,11 @@ void main() {
     }, DateTime(2026, 10, 7));
     expect(fresh.showTashkeel, isTrue);
     expect(fresh.darkMode, isFalse);
+    expect(fresh.hapticsOn, isTrue);
+    expect(fresh.autoAdvance, isTrue);
+    expect(
+      fresh.copyWith(hapticsOn: false, autoAdvance: false).toJson(),
+      containsPair('hapticsOn', false),
+    );
   });
 }

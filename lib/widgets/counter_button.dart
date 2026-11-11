@@ -15,10 +15,12 @@ class CounterButton extends StatefulWidget {
     required this.onReset,
     required this.index,
     required this.label,
+    this.haptics = true,
   });
 
   final int remaining;
   final bool done;
+  final bool haptics;
   final bool Function() onTap;
   final VoidCallback onReset;
   final int index;
@@ -28,13 +30,40 @@ class CounterButton extends StatefulWidget {
   State<CounterButton> createState() => _CounterButtonState();
 }
 
-class _CounterButtonState extends State<CounterButton> {
+class _CounterButtonState extends State<CounterButton>
+    with SingleTickerProviderStateMixin {
   Timer? _rapid;
   Timer? _rapidStart;
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+  late final CurvedAnimation _scale = CurvedAnimation(
+    parent: _pop,
+    curve: Curves.easeOutBack,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.done) _pop.value = 1;
+  }
+
+  @override
+  void didUpdateWidget(CounterButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.done && widget.done) {
+      _pop.forward(from: 0);
+    } else if (oldWidget.done && !widget.done) {
+      _pop.value = 1;
+    }
+  }
 
   @override
   void dispose() {
     _stopRapid();
+    _scale.dispose();
+    _pop.dispose();
     super.dispose();
   }
 
@@ -46,11 +75,17 @@ class _CounterButtonState extends State<CounterButton> {
   }
 
   void _tick() {
+    final finishing = widget.remaining <= 1;
     if (!widget.onTap()) {
       _stopRapid();
       return;
     }
-    HapticFeedback.selectionClick();
+    if (!widget.haptics) return;
+    if (finishing) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
   }
 
   @override
@@ -93,10 +128,31 @@ class _CounterButtonState extends State<CounterButton> {
                   ),
                   alignment: Alignment.center,
                   child: done
-                      ? const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 36,
+                      ? FadeTransition(
+                          opacity: _pop.drive(Tween(begin: 0.45, end: 1)),
+                          child: ScaleTransition(
+                            scale: _scale.drive(Tween(begin: 0.72, end: 1)),
+                            child: const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                                Text(
+                                  'تم',
+                                  style: TextStyle(
+                                    fontFamily: 'Cairo',
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         )
                       : Text(
                           formatCount(widget.remaining),

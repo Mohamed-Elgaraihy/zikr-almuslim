@@ -46,10 +46,7 @@ class ZikrApp extends StatelessWidget {
               child: child ?? const SizedBox.shrink(),
             );
           },
-          home: _LaunchHost(
-            controller: controller,
-            enableTicker: enableTicker,
-          ),
+          home: _LaunchHost(controller: controller, enableTicker: enableTicker),
         );
       },
     );
@@ -86,7 +83,13 @@ class _LaunchHostState extends State<_LaunchHost> {
   @override
   Widget build(BuildContext context) {
     if (!kIsWeb && !widget.controller.state.onboardingSeen) {
-      return OnboardingScreen(onDone: widget.controller.completeOnboarding);
+      return OnboardingScreen(
+        onSkip: () => widget.controller.completeOnboarding(remindersOn: false),
+        onFinished: () async {
+          await widget.controller.requestReminderAccess();
+          widget.controller.completeOnboarding(remindersOn: true);
+        },
+      );
     }
     return ShellScreen(
       controller: widget.controller,

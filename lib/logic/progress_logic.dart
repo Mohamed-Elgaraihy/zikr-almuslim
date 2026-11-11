@@ -51,6 +51,8 @@ class PersistedState {
     this.eveningPingDay,
     this.showTashkeel = true,
     this.darkMode = false,
+    this.hapticsOn = true,
+    this.autoAdvance = true,
   });
 
   final String day;
@@ -71,6 +73,8 @@ class PersistedState {
   final String? eveningPingDay;
   final bool showTashkeel;
   final bool darkMode;
+  final bool hapticsOn;
+  final bool autoAdvance;
 
   factory PersistedState.fresh(DateTime now) {
     return PersistedState(day: formatDay(now));
@@ -98,6 +102,8 @@ class PersistedState {
     bool clearEveningPing = false,
     bool? showTashkeel,
     bool? darkMode,
+    bool? hapticsOn,
+    bool? autoAdvance,
   }) {
     return PersistedState(
       day: day ?? this.day,
@@ -122,6 +128,8 @@ class PersistedState {
           : (eveningPingDay ?? this.eveningPingDay),
       showTashkeel: showTashkeel ?? this.showTashkeel,
       darkMode: darkMode ?? this.darkMode,
+      hapticsOn: hapticsOn ?? this.hapticsOn,
+      autoAdvance: autoAdvance ?? this.autoAdvance,
     );
   }
 
@@ -145,6 +153,8 @@ class PersistedState {
       'eveningPingDay': eveningPingDay,
       'showTashkeel': showTashkeel,
       'darkMode': darkMode,
+      'hapticsOn': hapticsOn,
+      'autoAdvance': autoAdvance,
     };
   }
 
@@ -187,6 +197,8 @@ class PersistedState {
       eveningPingDay: json['eveningPingDay'] as String?,
       showTashkeel: json['showTashkeel'] as bool? ?? true,
       darkMode: json['darkMode'] as bool? ?? false,
+      hapticsOn: json['hapticsOn'] as bool? ?? true,
+      autoAdvance: json['autoAdvance'] as bool? ?? true,
     );
   }
 }
