@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../logic/arabic_text.dart';
 import '../logic/progress_logic.dart';
 import '../models/azkar.dart';
 import '../state/app_controller.dart';
@@ -23,8 +24,70 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  String _query = '';
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  final _search = TextEditingController();
+  final _searchFocus = FocusNode();
+  final _searchKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _search.addListener(_onSearchChanged);
+    _searchFocus.addListener(_onSearchFocus);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _search.removeListener(_onSearchChanged);
+    _searchFocus.removeListener(_onSearchFocus);
+    _search.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (_searchFocus.hasFocus && _search.text.trim().isNotEmpty) {
+      _revealResults();
+    }
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    setState(() {});
+    if (_search.text.trim().isNotEmpty) _revealResults();
+  }
+
+  void _onSearchFocus() {
+    if (_searchFocus.hasFocus) _revealResults();
+  }
+
+  void _revealResults() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final target = _searchKey.currentContext;
+      if (target == null || !target.mounted) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _clearSearch({bool unfocus = true}) {
+    if (unfocus) _searchFocus.unfocus();
+    if (_search.text.isEmpty) return;
+    _search.clear();
+  }
+
+  void _open(String categoryId) {
+    _clearSearch();
+    widget.onOpen(categoryId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (library == null) {
       return const Center(child: Text('تعذّر تحميل الأذكار'));
     }
-    final query = _query.trim();
+    final query = _search.text.trim();
     final width = MediaQuery.sizeOf(context).width;
 
     return CustomScrollView(
@@ -41,10 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SliverToBoxAdapter(child: _Header(controller: controller)),
         if (controller.banners.isNotEmpty)
           SliverToBoxAdapter(
-            child: _ReminderBanner(
-              notices: controller.banners,
-              onOpen: widget.onOpen,
-            ),
+            child: _ReminderBanner(notices: controller.banners, onOpen: _open),
           ),
         SliverToBoxAdapter(
           child: Padding(
@@ -52,19 +112,31 @@ class _HomeScreenState extends State<HomeScreen> {
             child: _FeaturedRow(
               controller: controller,
               wide: width >= 720,
-              onOpen: widget.onOpen,
+              onOpen: _open,
             ),
           ),
         ),
-        if (widget.showAd) const SliverToBoxAdapter(child: PlacedAd()),
         SliverToBoxAdapter(
           child: Padding(
+            key: _searchKey,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: TextField(
-              onChanged: (value) => setState(() => _query = value),
+              controller: _search,
+              focusNode: _searchFocus,
+              autofocus: false,
+              scrollPadding: const EdgeInsets.only(top: 12, bottom: 240),
+              textInputAction: TextInputAction.search,
+              onTap: _revealResults,
               decoration: InputDecoration(
                 hintText: 'ابحث في الأبواب أو نص الذكر',
                 prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'مسح',
+                        onPressed: () => _clearSearch(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
                 filled: true,
                 fillColor: context.palette.card,
                 border: OutlineInputBorder(
@@ -79,10 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        if (query.isEmpty)
-          ..._groups(library, controller, width)
-        else
-          ..._search(library, query),
+        if (query.isEmpty) ...[
+          ..._groups(library, controller, width),
+          if (widget.showAd)
+            const SliverToBoxAdapter(
+              child: PlacedAd(margin: EdgeInsets.fromLTRB(16, 28, 16, 8)),
+            ),
+        ] else
+          ..._results(library, query),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
     );
@@ -131,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return _CategoryTile(
                   category: category,
                   done: completedItems(controller.state, category),
-                  onTap: () => widget.onOpen(category.id),
+                  onTap: () => _open(category.id),
                 );
               }, childCount: library.inGroup(group.id).length),
             ),
@@ -140,13 +216,13 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
   }
 
-  List<Widget> _search(AzkarLibrary library, String query) {
+  List<Widget> _results(AzkarLibrary library, String query) {
     final categories = library.categories.where((category) {
-      return category.title.contains(query) ||
+      return arabicContains(category.title, query) ||
           category.items.any(
             (item) =>
-                item.text.contains(query) ||
-                (item.heading?.contains(query) ?? false),
+                arabicContains(item.text, query) ||
+                (item.heading != null && arabicContains(item.heading!, query)),
           );
     }).toList();
     if (categories.isEmpty) {
@@ -163,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final category = categories[index];
           AzkarItem? hit;
           for (final item in category.items) {
-            if (item.text.contains(query)) {
+            if (arabicContains(item.text, query)) {
               hit = item;
               break;
             }
@@ -174,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
               category: category,
               done: completedItems(widget.controller.state, category),
               subtitle: hit?.text.split('\n').first,
-              onTap: () => widget.onOpen(category.id),
+              onTap: () => _open(category.id),
             ),
           );
         }, childCount: categories.length),

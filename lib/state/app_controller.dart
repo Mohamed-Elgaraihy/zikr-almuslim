@@ -27,6 +27,7 @@ class AppController extends ChangeNotifier {
   final AzkarRepository _repository;
   final NotificationService _notifications;
   final DateTime Function() _clock;
+  Future<void> _queuedSave = Future<void>.value();
 
   PersistedState state = PersistedState.fresh(DateTime.now());
   AzkarLibrary? library;
@@ -70,21 +71,30 @@ class AppController extends ChangeNotifier {
     _pushWidget();
     if (!enableNotifications) return;
     try {
-      await _notifications.init((payload) {
-        if (payload == 'morning' || payload == 'evening') {
-          pendingCategoryId = payload;
-          notifyListeners();
-        }
-      });
+      await _notifications.init(_onNotificationTap);
       await syncReminders(reschedule: true);
     } catch (error) {
       debugPrint('notifications unavailable: $error');
     }
   }
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(state.toJson()));
+  void _onNotificationTap(String? payload) {
+    if (payload == 'morning' || payload == 'evening') {
+      pendingCategoryId = payload;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _save() {
+    final payload = jsonEncode(state.toJson());
+    final write = _queuedSave.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_storageKey, payload);
+    });
+    _queuedSave = write.catchError((Object error) {
+      debugPrint('save failed: $error');
+    });
+    return write;
   }
 
   void _commit(PersistedState next) {
@@ -152,15 +162,30 @@ class AppController extends ChangeNotifier {
       DeviceBridge.allowBackgroundReminders();
 
   Future<void> prepareLaunch() async {
-    if (!enableNotifications) return;
+    if (!enableNotifications || !state.onboardingSeen) return;
     try {
-      await _notifications.requestPermission();
       if (state.remindersOn && !await _notifications.canScheduleExact()) {
         await _notifications.requestExactAlarm();
       }
     } catch (error) {
       debugPrint('launch permission failed: $error');
     }
+  }
+
+  /// Asks for notification access after the user has seen why reminders exist.
+  Future<void> requestReminderAccess() async {
+    if (!enableNotifications) return;
+    try {
+      if (!_notifications.ready) {
+        await _notifications.init(_onNotificationTap);
+      }
+      await _notifications.requestPermission();
+      await _notifications.requestExactAlarm();
+      await DeviceBridge.allowBackgroundReminders();
+    } catch (error) {
+      debugPrint('reminder permission failed: $error');
+    }
+    await syncReminders(reschedule: true);
   }
 
   Future<void> setReminders(bool enabled) async {
@@ -199,9 +224,20 @@ class AppController extends ChangeNotifier {
     await syncReminders(reschedule: true);
   }
 
-  void completeOnboarding() {
+  void completeOnboarding({bool remindersOn = true}) {
     if (state.onboardingSeen) return;
-    _commit(state.copyWith(onboardingSeen: true));
+    _commit(state.copyWith(onboardingSeen: true, remindersOn: remindersOn));
+    syncReminders(reschedule: true);
+  }
+
+  void setHaptics(bool enabled) {
+    if (enabled == state.hapticsOn) return;
+    _commit(state.copyWith(hapticsOn: enabled));
+  }
+
+  void setAutoAdvance(bool enabled) {
+    if (enabled == state.autoAdvance) return;
+    _commit(state.copyWith(autoAdvance: enabled));
   }
 
   void setShowTashkeel(bool shown) {
@@ -233,12 +269,7 @@ class AppController extends ChangeNotifier {
   Future<bool> sendTestNotification() async {
     try {
       if (!_notifications.ready) {
-        await _notifications.init((payload) {
-          if (payload == 'morning' || payload == 'evening') {
-            pendingCategoryId = payload;
-            notifyListeners();
-          }
-        });
+        await _notifications.init(_onNotificationTap);
       }
       final granted = await _notifications.requestPermission();
       if (!granted && kIsWeb) return false;
@@ -258,11 +289,13 @@ class AppController extends ChangeNotifier {
   Future<void> syncReminders({bool reschedule = false}) async {
     if (library == null) return;
     final clockNow = now;
-    var next = rollTo(state, clockNow);
-    var changed =
-        next.day != state.day || next.taps.length != state.taps.length;
+    final baseline = state;
+    var planned = rollTo(baseline, clockNow);
+    final rolled = !identical(planned, baseline);
+    var changed = rolled;
+    final sent = <WirdSlot>[];
     if (_notifications.ready) {
-      for (final notice in unsentNotices(next, azkar, clockNow)) {
+      for (final notice in unsentNotices(planned, azkar, clockNow)) {
         try {
           await _notifications.showNow(
             id: notice.slot == WirdSlot.morning ? 11 : 12,
@@ -270,7 +303,8 @@ class AppController extends ChangeNotifier {
             body: notice.body,
             payload: notice.payload,
           );
-          next = markSent(next, notice.slot);
+          planned = markSent(planned, notice.slot);
+          sent.add(notice.slot);
           changed = true;
         } catch (error) {
           debugPrint('show reminder failed: $error');
@@ -279,22 +313,34 @@ class AppController extends ChangeNotifier {
       if (reschedule) {
         try {
           await _notifications.scheduleWeek(
-            state: next,
+            state: planned,
             now: clockNow,
-            morningDone: slotDone(next, azkar, WirdSlot.morning),
-            eveningDone: slotDone(next, azkar, WirdSlot.evening),
+            morningDone: slotDone(planned, azkar, WirdSlot.morning),
+            eveningDone: slotDone(planned, azkar, WirdSlot.evening),
           );
         } catch (error) {
           debugPrint('schedule failed: $error');
         }
       }
     }
+    // Apply only the reminder fields onto the latest state. A dismissal or a
+    // setting change during the await must not be replaced by the snapshot.
     if (changed) {
-      state = next;
+      var merged = state;
+      if (rolled && merged.day != formatDay(clockNow)) {
+        merged = rollTo(merged, clockNow);
+      }
+      if (merged.day == planned.day) {
+        for (final slot in sent) {
+          final ping = slot == WirdSlot.morning
+              ? merged.morningPingDay
+              : merged.eveningPingDay;
+          if (ping != merged.day) merged = markSent(merged, slot);
+        }
+      }
+      state = merged;
       notifyListeners();
       await _save();
-    } else {
-      state = next;
     }
     _pushWidget();
   }

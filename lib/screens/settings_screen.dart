@@ -20,235 +20,289 @@ class SettingsScreen extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 880),
         child: ListView(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
-      children: [
-        Text(
-          'الإعدادات',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: context.palette.greenDark,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'يصل التذكير إذا حلّ الوقت ولم يُقرأ ورد الصباح أو المساء.',
-          style: TextStyle(color: context.palette.inkSoft),
-        ),
-        const SizedBox(height: 16),
-        _Card(
-          child: Column(
-            children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('تذكير يومي'),
-                subtitle: Text('تنبيه للصباح والمساء إن لم يُقرأ الورد'),
-                value: state.remindersOn,
-                onChanged: (value) {
-                  controller.setReminders(value);
-                },
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+          children: [
+            Text(
+              'الإعدادات',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: context.palette.greenDark,
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('وقت أذكار الصباح'),
-                trailing: Text(
-                  formatClock(state.morningHour, state.morningMinute),
-                ),
-                onTap: () => _pickTime(
-                  context,
-                  initial: TimeOfDay(
-                    hour: state.morningHour,
-                    minute: state.morningMinute,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'يصل التذكير إذا حلّ الوقت ولم يُقرأ ورد الصباح أو المساء.',
+              style: TextStyle(color: context.palette.inkSoft),
+            ),
+            const SizedBox(height: 16),
+            _Card(
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('تذكير يومي'),
+                    subtitle: const Text(
+                      'تنبيه للصباح والمساء إن لم يُقرأ الورد. عند التفعيل نشرح الطلب ثم يظهر إذن النظام.',
+                    ),
+                    value: state.remindersOn,
+                    onChanged: (value) async {
+                      if (!value) {
+                        controller.setReminders(false);
+                        return;
+                      }
+                      final approved = await _explainReminders(context);
+                      if (approved) await controller.setReminders(true);
+                    },
                   ),
-                  onPicked: controller.setMorningTime,
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('وقت أذكار المساء'),
-                trailing: Text(
-                  formatClock(state.eveningHour, state.eveningMinute),
-                ),
-                onTap: () => _pickTime(
-                  context,
-                  initial: TimeOfDay(
-                    hour: state.eveningHour,
-                    minute: state.eveningMinute,
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('وقت أذكار الصباح'),
+                    trailing: Text(
+                      formatClock(state.morningHour, state.morningMinute),
+                    ),
+                    onTap: () => _pickTime(
+                      context,
+                      initial: TimeOfDay(
+                        hour: state.morningHour,
+                        minute: state.morningMinute,
+                      ),
+                      onPicked: controller.setMorningTime,
+                    ),
                   ),
-                  onPicked: controller.setEveningTime,
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('العمل في الخلفية'),
-                subtitle: const Text(
-                  'بعض الأجهزة تجمّد التذكير. اسمح بالبطارية، ثم فعّل التشغيل التلقائي إن ظهرت قائمته.',
-                ),
-                onTap: controller.allowBackgroundReminders,
-              ),
-              const SizedBox(height: 4),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final ok = await controller.sendTestNotification();
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          ok ? 'أُرسل تنبيه تجريبي' : 'لم يُسمح بالتنبيه. فعّله من المتصفح أو إعدادات الجهاز.',
-                        ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('وقت أذكار المساء'),
+                    trailing: Text(
+                      formatClock(state.eveningHour, state.eveningMinute),
+                    ),
+                    onTap: () => _pickTime(
+                      context,
+                      initial: TimeOfDay(
+                        hour: state.eveningHour,
+                        minute: state.eveningMinute,
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.notifications_none_rounded),
-                  label: Text('تجربة التنبيه'),
-                ),
+                      onPicked: controller.setEveningTime,
+                    ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('العمل في الخلفية'),
+                    subtitle: const Text(
+                      'بعض الأجهزة تجمّد التذكير. اسمح بالبطارية، ثم فعّل التشغيل التلقائي إن ظهرت قائمته.',
+                    ),
+                    onTap: controller.allowBackgroundReminders,
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final ok = await controller.sendTestNotification();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok ? 'أُرسل تنبيه تجريبي' : 'لم يُسمح بالتنبيه. فعّله من المتصفح أو إعدادات الجهاز.',
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.notifications_none_rounded),
+                      label: Text('تجربة التنبيه'),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('حجم خط الذكر: ${state.fontSize.round()}'),
-              const SizedBox(height: 4),
-              Text(
-                'الحجم الطبيعي ٢٨، ويمكن تكبيره أو تصغيره من هنا.',
-                style: TextStyle(color: context.palette.inkSoft, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('حجم خط الذكر: ${state.fontSize.round()}'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'الحجم الطبيعي ٢٨، ويمكن تكبيره أو تصغيره من هنا.',
+                    style: TextStyle(
+                      color: context.palette.inkSoft,
+                      height: 1.5,
+                    ),
+                  ),
+                  Slider(
+                    value: state.fontSize,
+                    min: kMinDhikrFontSize,
+                    max: kMaxDhikrFontSize,
+                    divisions: (kMaxDhikrFontSize - kMinDhikrFontSize).round(),
+                    label: '${state.fontSize.round()}',
+                    onChanged: controller.setFontSize,
+                  ),
+                ],
               ),
-              Slider(
-                value: state.fontSize,
-                min: kMinDhikrFontSize,
-                max: kMaxDhikrFontSize,
-                divisions: (kMaxDhikrFontSize - kMinDhikrFontSize).round(),
-                label: '${state.fontSize.round()}',
-                onChanged: controller.setFontSize,
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('إظهار التشكيل'),
+                    subtitle: Text('إخفاؤه يترك الحروف بلا حركات'),
+                    value: state.showTashkeel,
+                    onChanged: controller.setShowTashkeel,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('الوضع الليلي'),
+                    subtitle: const Text('خلفية داكنة للقراءة في الليل'),
+                    value: state.darkMode,
+                    onChanged: controller.setDarkMode,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('اهتزاز خفيف عند العدّ'),
+                    subtitle: const Text('رعشة قصيرة مع كل ضغطة على العداد'),
+                    value: state.hapticsOn,
+                    onChanged: controller.setHaptics,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('الانتقال للذكر التالي'),
+                    subtitle: const Text(
+                      'بعد اكتمال الذكر ينزل العداد إلى الذي يليه',
+                    ),
+                    value: state.autoAdvance,
+                    onChanged: controller.setAutoAdvance,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          child: Column(
-            children: [
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('إظهار التشكيل'),
-                subtitle: Text('إخفاؤه يترك الحروف بلا حركات'),
-                value: state.showTashkeel,
-                onChanged: controller.setShowTashkeel,
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'نسخة على الجهاز',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: context.palette.greenDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'تُحفظ السلسلة وورد اليوم في ملف عندك. لا تُرفع إلى أي خادم.',
+                    style: TextStyle(
+                      color: context.palette.inkSoft,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final shared = await DeviceBridge.shareText(
+                          controller.backupText(),
+                          subject: 'نسخة ذكر المسلم',
+                          filename: 'zikr-backup.json',
+                        );
+                        if (!context.mounted || shared) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('تعذّر تصدير النسخة من هذا الجهاز.'),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.upload_rounded),
+                      label: Text('تصدير النسخة'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _importBackup(context),
+                      icon: const Icon(Icons.download_rounded),
+                      label: Text('استيراد نسخة'),
+                    ),
+                  ),
+                ],
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('الوضع الليلي'),
-                subtitle: Text('خلفية داكنة للقراءة في الليل'),
-                value: state.darkMode,
-                onChanged: controller.setDarkMode,
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                children: [
+                  _InfoTile(
+                    icon: Icons.menu_book_outlined,
+                    title: 'عن التطبيق',
+                    kind: InfoKind.about,
+                  ),
+                  _InfoTile(
+                    icon: Icons.person_outline_rounded,
+                    title: 'من نحن',
+                    kind: InfoKind.developer,
+                  ),
+                  _InfoTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'سياسة الخصوصية',
+                    kind: InfoKind.privacy,
+                  ),
+                  _InfoTile(
+                    icon: Icons.gavel_rounded,
+                    title: 'شروط الاستخدام',
+                    kind: InfoKind.terms,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'نسخة على الجهاز',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: context.palette.greenDark,
-                ),
+            ),
+            const SizedBox(height: 12),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextButton(
+                    onPressed: () => _confirm(
+                      context,
+                      title: 'تصفير اليوم؟',
+                      body: 'تُمسح عدّادات اليوم ويبقى سجل الأيام السابقة.',
+                      action: controller.clearToday,
+                    ),
+                    child: Text('تصفير عدّاد اليوم'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'تُحفظ السلسلة وورد اليوم في ملف عندك. لا تُرفع إلى أي خادم.',
-                style: TextStyle(color: context.palette.inkSoft, height: 1.5),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final shared = await DeviceBridge.shareText(
-                      controller.backupText(),
-                      subject: 'نسخة ذكر المسلم',
-                      filename: 'zikr-backup.json',
-                    );
-                    if (!context.mounted || shared) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تعذّر تصدير النسخة من هذا الجهاز.'),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.upload_rounded),
-                  label: Text('تصدير النسخة'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _importBackup(context),
-                  icon: const Icon(Icons.download_rounded),
-                  label: Text('استيراد نسخة'),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          child: Column(
-            children: [
-              _InfoTile(
-                icon: Icons.menu_book_outlined,
-                title: 'عن التطبيق',
-                kind: InfoKind.about,
-              ),
-              _InfoTile(
-                icon: Icons.person_outline_rounded,
-                title: 'من نحن',
-                kind: InfoKind.developer,
-              ),
-              _InfoTile(
-                icon: Icons.privacy_tip_outlined,
-                title: 'سياسة الخصوصية',
-                kind: InfoKind.privacy,
-              ),
-              _InfoTile(
-                icon: Icons.gavel_rounded,
-                title: 'شروط الاستخدام',
-                kind: InfoKind.terms,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextButton(
-                onPressed: () => _confirm(
-                  context,
-                  title: 'تصفير اليوم؟',
-                  body: 'تُمسح عدّادات اليوم ويبقى سجل الأيام السابقة.',
-                  action: controller.clearToday,
-                ),
-                child: Text('تصفير عدّاد اليوم'),
-              ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<bool> _explainReminders(BuildContext context) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('تذكير يومي'),
+          content: const Text(
+            'ليصلك تنبيه الصباح والمساء إذا فات الورد، سيطلب التطبيق إذن التنبيهات من النظام بعد هذه الرسالة.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ليس الآن'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('متابعة'),
+            ),
+          ],
+        );
+      },
+    );
+    return approved == true;
   }
 
   Future<void> _importBackup(BuildContext context) async {

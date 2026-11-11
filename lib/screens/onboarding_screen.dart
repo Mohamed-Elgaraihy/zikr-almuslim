@@ -4,9 +4,17 @@ import '../theme/app_theme.dart';
 import '../widgets/brand_mark.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key, required this.onDone});
+  const OnboardingScreen({
+    super.key,
+    required this.onFinished,
+    required this.onSkip,
+  });
 
-  final VoidCallback onDone;
+  /// Completes the tour after the reminders slide, where permission is asked.
+  final Future<void> Function() onFinished;
+
+  /// Leaves the tour before reminders, without asking for notification access.
+  final VoidCallback onSkip;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -27,7 +35,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     _GuidePage(
       title: 'لا يفوتك الورد',
-      body: 'شاشة اليوم تُريك ما تبقّى وكم يومًا واصلت. وإذا جاء وقت الصباح أو المساء ولم تقرأ، يصلك تذكير لطيف.',
+      body: 'شاشة اليوم تُريك ما تبقّى وكم يومًا واصلت. وإذا جاء وقت الصباح أو المساء ولم تقرأ، يصلك تذكير لطيف. بالضغط على «ابدأ الورد» نطلب إذن التنبيهات لهذا التذكير فقط.',
     ),
   ];
 
@@ -38,10 +46,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   bool get _last => _page == _pages.length - 1;
+  var _finishing = false;
 
-  void _next() {
+  Future<void> _next() async {
+    if (_finishing) return;
     if (_last) {
-      widget.onDone();
+      setState(() => _finishing = true);
+      await widget.onFinished();
       return;
     }
     _controller.nextPage(
@@ -64,7 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: _last
                     ? const SizedBox(height: 48)
                     : TextButton(
-                        onPressed: widget.onDone,
+                        onPressed: _finishing ? null : widget.onSkip,
                         child: const Text(
                           'تخطّي',
                           style: TextStyle(
@@ -86,21 +97,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 },
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < _pages.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: i == _page ? 22 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: i == _page ? AppColors.gold : Colors.white24,
-                      borderRadius: BorderRadius.circular(99),
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < _pages.length; i++)
+                    AnimatedContainer(
+                      key: ValueKey('onboarding-dot-$i'),
+                      duration: const Duration(milliseconds: 220),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: i == _page ? 22 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: i == _page ? AppColors.gold : Colors.white24,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 22),
             Padding(
@@ -108,7 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _next,
+                  onPressed: _finishing ? null : () => _next(),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.goldSoft,
                     foregroundColor: AppColors.greenDeep,

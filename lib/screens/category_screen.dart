@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../logic/progress_logic.dart';
+import '../models/azkar.dart';
 import '../services/device_bridge.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
@@ -50,6 +51,24 @@ class _CategoryScreenState extends State<CategoryScreen> {
       (item) => remainingFor(widget.controller.state, category.id, item) > 0,
     );
     if (index <= 0) return;
+    await _reveal(index);
+  }
+
+  int? _nextOpen(AzkarCategory category, int after) {
+    for (var index = after + 1; index < category.items.length; index++) {
+      if (remainingFor(
+            widget.controller.state,
+            category.id,
+            category.items[index],
+          ) >
+          0) {
+        return index;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _reveal(int index) async {
     final key = _keyFor(index);
     for (var step = 0; step < 24; step++) {
       if (!mounted) return;
@@ -88,10 +107,46 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final total = category.items.length;
     final progress = total == 0 ? 0.0 : done / total;
     final adAfter = total > 3 ? 2 : total - 1;
+    final landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final progressBar = ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: LinearProgressIndicator(
+        minHeight: landscape ? 3 : 4,
+        value: progress,
+        backgroundColor: Colors.white24,
+        color: AppColors.gold,
+      ),
+    );
+    final progressLabel = Text(
+      fraction(done, total),
+      style: TextStyle(color: Colors.white, fontSize: landscape ? 13 : 16),
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(category.title),
+        toolbarHeight: landscape ? 48 : kToolbarHeight,
+        title: landscape
+            ? Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      category.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  progressLabel,
+                ],
+              )
+            : Text(category.title),
         actions: [
           IconButton(
             tooltip: 'إعادة الباب',
@@ -102,101 +157,116 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(46),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    minHeight: 4,
-                    value: progress,
-                    backgroundColor: Colors.white24,
-                    color: AppColors.gold,
+          preferredSize: Size.fromHeight(landscape ? 4 : 46),
+          child: landscape
+              ? progressBar
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      progressBar,
+                      const SizedBox(height: 6),
+                      progressLabel,
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  fraction(done, total),
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
       body: ListView(
-            controller: _scroll,
-            padding: const EdgeInsets.only(top: 16, bottom: 28),
-            children: [
-              if (!controller.state.hintSeen)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Material(
-                    color: context.palette.goldSoft,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'اضغط الشريط الأخضر للعدّ، وأبقِ الضغط للعدّ السريع. يصل العداد إلى الصفر حين يكتمل الذكر.',
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: controller.dismissHint,
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
+        controller: _scroll,
+        padding: const EdgeInsets.only(top: 16, bottom: 28),
+        children: [
+          if (!controller.state.hintSeen)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, landscape ? 8 : 12),
+              child: Material(
+                color: context.palette.goldSoft,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: EdgeInsets.all(landscape ? 8 : 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'اضغط الشريط الأخضر للعدّ، وأبقِ الضغط للعدّ السريع. يصل العداد إلى الصفر حين يكتمل الذكر.',
+                          maxLines: landscape ? 1 : null,
+                          overflow: landscape ? TextOverflow.ellipsis : null,
+                          style: landscape
+                              ? const TextStyle(fontSize: 14, height: 1.3)
+                              : null,
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        key: const ValueKey('reading-hint-close'),
+                        tooltip: 'إغلاق',
+                        onPressed: controller.dismissHint,
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
                   ),
                 ),
-              for (final entry in category.items.indexed) ...[
-                KeyedSubtree(
-                  key: _keyFor(entry.$1),
-                  child: DhikrCard(
-                    categoryId: category.id,
-                    index: entry.$1 + 1,
-                    item: entry.$2,
-                    remaining: remainingFor(
-                      controller.state,
-                      category.id,
-                      entry.$2,
-                    ),
-                    fontSize: controller.state.fontSize,
-                    showTashkeel: controller.state.showTashkeel,
-                    onCount: () {
-                      final result = controller.tap(category.id, entry.$2.id);
-                      if (!context.mounted) return result.changed;
-                      if (result.goalCompleted) {
-                        _celebrate(
-                          context,
-                          title: 'تقبّل الله',
-                          body:
-                              'أتممت ورد اليوم. سلسلتك الآن ${controller.streakNow()} ${controller.streakNow() == 1 ? 'يوم' : 'أيام'}.',
-                        );
-                      } else if (result.categoryCompleted &&
-                          (category.id == 'morning' ||
-                              category.id == 'evening')) {
-                        _celebrate(
-                          context,
-                          title: 'أتممت ${category.title}',
-                          body: 'بقيت البركة في المواظبة.',
-                        );
-                      }
-                      return result.changed;
-                    },
-                    onReset: () =>
-                        controller.clearItem(category.id, entry.$2.id),
-                  ),
+              ),
+            ),
+          for (final entry in category.items.indexed) ...[
+            KeyedSubtree(
+              key: _keyFor(entry.$1),
+              child: DhikrCard(
+                categoryId: category.id,
+                index: entry.$1 + 1,
+                item: entry.$2,
+                remaining: remainingFor(
+                  controller.state,
+                  category.id,
+                  entry.$2,
                 ),
-                if (entry.$1 == adAfter) const PlacedAd(),
-              ],
-            ],
+                fontSize: controller.state.fontSize,
+                showTashkeel: controller.state.showTashkeel,
+                haptics: controller.state.hapticsOn,
+                onCount: () {
+                  final before = remainingFor(
+                    controller.state,
+                    category.id,
+                    entry.$2,
+                  );
+                  final result = controller.tap(category.id, entry.$2.id);
+                  if (!context.mounted) return result.changed;
+                  final finished =
+                      before > 0 &&
+                      remainingFor(controller.state, category.id, entry.$2) ==
+                          0;
+                  if (finished && controller.state.autoAdvance) {
+                    final next = _nextOpen(category, entry.$1);
+                    if (next != null) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _reveal(next);
+                      });
+                    }
+                  }
+                  if (result.goalCompleted) {
+                    _celebrate(
+                      context,
+                      title: 'تقبّل الله',
+                      body:
+                          'أتممت ورد اليوم. سلسلتك الآن ${controller.streakNow()} ${controller.streakNow() == 1 ? 'يوم' : 'أيام'}.',
+                    );
+                  } else if (result.categoryCompleted &&
+                      (category.id == 'morning' || category.id == 'evening')) {
+                    _celebrate(
+                      context,
+                      title: 'أتممت ${category.title}',
+                      body: 'بقيت البركة في المواظبة.',
+                    );
+                  }
+                  return result.changed;
+                },
+                onReset: () => controller.clearItem(category.id, entry.$2.id),
+              ),
+            ),
+            if (entry.$1 == adAfter)
+              const PlacedAd(margin: EdgeInsets.fromLTRB(16, 32, 16, 32)),
+          ],
+        ],
       ),
     );
   }

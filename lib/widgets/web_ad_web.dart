@@ -1,4 +1,5 @@
 import 'dart:async';
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
 import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
@@ -45,7 +46,12 @@ Future<void> _ensureAdScript() {
 }
 
 class WebAd extends StatefulWidget {
-  const WebAd({super.key});
+  const WebAd({
+    super.key,
+    this.margin = const EdgeInsets.fromLTRB(16, 24, 16, 24),
+  });
+
+  final EdgeInsets margin;
 
   @override
   State<WebAd> createState() => _WebAdState();
@@ -248,7 +254,7 @@ class _WebAdState extends State<WebAd> with RouteAware {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: widget.margin,
       child: SizedBox(
         key: ValueKey(viewType),
         height: _height,

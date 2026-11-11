@@ -138,19 +138,23 @@ class _ShellScreenState extends State<ShellScreen> with WidgetsBindingObserver {
       );
     }
 
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(bottom: false, child: body),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: [
-          for (final destination in destinations)
-            NavigationDestination(
-              icon: Icon(destination.$1),
-              label: destination.$2,
+      bottomNavigationBar: keyboardOpen
+          ? null
+          : NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (index) => setState(() => _index = index),
+              destinations: [
+                for (final destination in destinations)
+                  NavigationDestination(
+                    icon: Icon(destination.$1),
+                    label: destination.$2,
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
