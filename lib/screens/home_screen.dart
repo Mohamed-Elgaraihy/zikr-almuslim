@@ -7,6 +7,7 @@ import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pattern_painter.dart';
 import '../widgets/placed_ad.dart';
+import 'sebha_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -116,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
         ),
+        SliverToBoxAdapter(child: _SebhaEntry(controller: controller)),
         SliverToBoxAdapter(
           child: Padding(
             key: _searchKey,
@@ -164,6 +166,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  List<AzkarCategory> _gridCategories(AzkarLibrary library, String groupId) {
+    return library
+        .inGroup(groupId)
+        .where(
+          (category) => category.id != 'morning' && category.id != 'evening',
+        )
+        .toList();
+  }
+
   List<Widget> _groups(
     AzkarLibrary library,
     AppController controller,
@@ -178,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         : 2;
     return [
       for (final group in library.groups)
-        if (library.inGroup(group.id).isNotEmpty) ...[
+        if (_gridCategories(library, group.id).isNotEmpty) ...[
           if (group.title.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -203,13 +214,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 mainAxisSpacing: 10,
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
-                final category = library.inGroup(group.id)[index];
+                final categories = _gridCategories(library, group.id);
+                final category = categories[index];
                 return _CategoryTile(
                   category: category,
                   done: completedItems(controller.state, category),
                   onTap: () => _open(category.id),
                 );
-              }, childCount: library.inGroup(group.id).length),
+              }, childCount: _gridCategories(library, group.id).length),
             ),
           ),
         ],
@@ -305,12 +317,12 @@ class _Header extends StatelessWidget {
               children: [
                 _StatChip(
                   icon: Icons.local_fire_department_rounded,
-                  label: '${ltr(streak)} يومًا',
+                  label: dayPhrase(streak),
                 ),
                 const SizedBox(width: 8),
                 _StatChip(
                   icon: Icons.fingerprint_rounded,
-                  label: '${ltr(taps)} تكرارًا اليوم',
+                  label: '${tapPhrase(taps)} اليوم',
                 ),
               ],
             ),
@@ -346,6 +358,72 @@ class _StatChip extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SebhaEntry extends StatelessWidget {
+  const _SebhaEntry({required this.controller});
+
+  final AppController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      child: Material(
+        color: context.palette.card,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          key: const ValueKey('open-sebha'),
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => SebhaScreen(controller: controller),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.brightness_low_rounded,
+                  color: context.palette.green,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'السبحة',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: context.palette.greenDark,
+                        ),
+                      ),
+                      Text(
+                        'عدّ حر يحفظ على الجهاز',
+                        style: TextStyle(
+                          color: context.palette.ink,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_left_rounded,
+                  color: context.palette.greenDark,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

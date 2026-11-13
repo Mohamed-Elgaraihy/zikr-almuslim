@@ -155,6 +155,44 @@ void main() {
     expect(kept.copyWith().toJson()['fontTuned'], isTrue);
   });
 
+  test('counts and weekdays agree in Arabic', () {
+    expect(dayPhrase(0), '٠ يومًا');
+    expect(dayPhrase(1), '١ يوم');
+    expect(dayPhrase(2), '٢ يومين');
+    expect(dayPhrase(5), '٥ أيام');
+    expect(dayPhrase(12), '١٢ يومًا');
+    expect(tapPhrase(1), '١ تكرار');
+    expect(tapPhrase(2), '٢ تكرارين');
+    expect(tapPhrase(4), '٤ تكرارات');
+    expect(tapPhrase(15), '١٥ تكرارًا');
+    expect(arabicDigits('1.5.8'), '١.٥.٨');
+    expect(formatCount(1), '٠١');
+    final monday = DateTime(2026, 10, 5);
+    expect(monday.weekday, DateTime.monday);
+    expect(weekdayName(monday), 'الإثنين');
+    expect(weekdayName(DateTime(2026, 10, 10)), 'السبت');
+    expect(weekdayName(DateTime(2026, 10, 11)), 'الأحد');
+  });
+
+  test('the sebha count is kept apart from the daily wird', () {
+    final state = PersistedState(
+      day: '2026-10-05',
+      sebhaCount: 40,
+      sebhaTarget: 33,
+      taps: {'morning:1': 1},
+    );
+    final rolled = rollTo(state, DateTime(2026, 10, 6));
+    expect(rolled.taps, isEmpty);
+    expect(rolled.sebhaCount, 40);
+    expect(rolled.sebhaTarget, 33);
+    final saved = PersistedState.fromJson(
+      state.toJson(),
+      DateTime(2026, 10, 5),
+    );
+    expect(saved.sebhaCount, 40);
+    expect(saved.sebhaTarget, 33);
+  });
+
   test('diacritics can be hidden without dropping the letters', () {
     expect(stripTashkeel('الْحَمْدُ لِلَّهِ'), 'الحمد لله');
     expect(stripTashkeel('بِسْمِ'), 'بسم');

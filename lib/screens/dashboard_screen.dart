@@ -170,8 +170,8 @@ class _GoalCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('${ltr(streak)} أيام متتالية'),
-                Text('${ltr(taps)} تكرارًا · ${ltr(chapters)} أبواب مكتملة'),
+                Text(dayPhrase(streak)),
+                Text('${tapPhrase(taps)} · ${chapterPhrase(chapters)}'),
               ],
             ),
           ),
@@ -364,16 +364,21 @@ class _WeekStrip extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    shortWeekday(day),
+                    weekdayName(day),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 15,
-                      color: context.palette.inkSoft,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: context.palette.ink,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    width: 28,
-                    height: 28,
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: state.goalDays.contains(formatDay(day))
@@ -388,7 +393,14 @@ class _WeekStrip extends StatelessWidget {
                     ),
                     child: state.goalDays.contains(formatDay(day))
                         ? const Icon(Icons.check, size: 16, color: Colors.white)
-                        : null,
+                        : Text(
+                            arabicDigits(day.day),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: context.palette.ink,
+                            ),
+                          ),
                   ),
                 ],
               ),
