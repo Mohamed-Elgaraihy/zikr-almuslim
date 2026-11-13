@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../content/info_copy.dart';
+import '../logic/progress_logic.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 
@@ -85,10 +86,11 @@ class InfoScreen extends StatelessWidget {
               if (kind == InfoKind.about) ...[
                 const SizedBox(height: 18),
                 Text(
-                  'الإصدار $kAppVersionLabel',
+                  'الإصدار ${arabicDigits(kAppVersionLabel)}',
                   style: TextStyle(
-                    color: context.palette.inkSoft,
-                    fontSize: 14,
+                    color: context.palette.ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
