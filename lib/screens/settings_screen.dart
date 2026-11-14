@@ -287,31 +287,6 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
-              _Card(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextButton(
-                      onPressed: () => _confirm(
-                        context,
-                        title: 'تصفير اليوم؟',
-                        body: 'تُمسح عدّادات اليوم ويبقى سجل الأيام السابقة.',
-                        action: controller.clearToday,
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.palette.ink,
-                        textStyle: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      child: const Text('تصفير عدّاد اليوم'),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -404,34 +379,6 @@ class SettingsScreen extends StatelessWidget {
     );
     if (picked == null) return;
     await onPicked(picked.hour, picked.minute);
-  }
-
-  Future<void> _confirm(
-    BuildContext context, {
-    required String title,
-    required String body,
-    required VoidCallback action,
-  }) async {
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('تصفير'),
-            ),
-          ],
-        );
-      },
-    );
-    if (approved == true) action();
   }
 }
 

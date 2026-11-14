@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../logic/progress_logic.dart';
+import 'device_bridge.dart';
 
 class NotificationService {
   NotificationService({FlutterLocalNotificationsPlugin? plugin})
@@ -29,7 +30,7 @@ class NotificationService {
 
   Future<void> init(void Function(String? payload) onTap) async {
     tzdata.initializeTimeZones();
-    _useLocalOffset();
+    await _useDeviceTimeZone();
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(
@@ -55,6 +56,19 @@ class NotificationService {
       onDidReceiveNotificationResponse: (response) => onTap(response.payload),
     );
     ready = true;
+  }
+
+  Future<void> _useDeviceTimeZone() async {
+    try {
+      final id = await DeviceBridge.timeZoneId();
+      if (id != null && id.isNotEmpty) {
+        tz.setLocalLocation(tz.getLocation(id));
+        return;
+      }
+    } catch (error) {
+      debugPrint('timezone lookup failed: $error');
+    }
+    _useLocalOffset();
   }
 
   void _useLocalOffset() {
@@ -163,66 +177,51 @@ class NotificationService {
   }) async {
     await cancelWeek();
     if (!state.remindersOn || kIsWeb) return;
-    final start = DateTime(now.year, now.month, now.day);
-    for (var offset = 0; offset < 7; offset++) {
-      final date = start.add(Duration(days: offset));
-      if (!(offset == 0 && morningDone)) {
-        final when = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          state.morningHour,
-          state.morningMinute,
-        );
-        if (when.isAfter(now)) {
-          await _schedule(
-            1100 + offset,
-            'أذكار الصباح',
-            'لم تقرأ أذكار الصباح اليوم. هل قرأت وردك؟',
-            when,
-            'morning',
-          );
-        }
-      }
-      if (!(offset == 0 && eveningDone)) {
-        final when = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          state.eveningHour,
-          state.eveningMinute,
-        );
-        if (when.isAfter(now)) {
-          await _schedule(
-            2100 + offset,
-            'أذكار المساء',
-            'لم تقرأ أذكار المساء اليوم. تذكير لطيف بوردك.',
-            when,
-            'evening',
-          );
-        }
-      }
-    }
+    final exact = await canScheduleExact();
+    final mode = exact
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+    await _scheduleDaily(
+      1100,
+      'أذكار الصباح',
+      'لم تقرأ أذكار الصباح اليوم. هل قرأت وردك؟',
+      nextReminderInstant(
+        now,
+        state.morningHour,
+        state.morningMinute,
+        doneToday: morningDone,
+      ),
+      'morning',
+      mode,
+    );
+    await _scheduleDaily(
+      2100,
+      'أذكار المساء',
+      'لم تقرأ أذكار المساء اليوم. تذكير لطيف بوردك.',
+      nextReminderInstant(
+        now,
+        state.eveningHour,
+        state.eveningMinute,
+        doneToday: eveningDone,
+      ),
+      'evening',
+      mode,
+    );
   }
 
-  Future<void> _schedule(
+  Future<void> _scheduleDaily(
     int id,
     String title,
     String body,
     DateTime when,
     String payload,
+    AndroidScheduleMode mode,
   ) async {
     final scheduled = tz.TZDateTime.from(when, tz.local);
     try {
-      await _zoned(
-        id,
-        title,
-        body,
-        scheduled,
-        payload,
-        AndroidScheduleMode.exactAllowWhileIdle,
-      );
+      await _zoned(id, title, body, scheduled, payload, mode);
     } on PlatformException catch (error) {
+      if (mode != AndroidScheduleMode.exactAllowWhileIdle) rethrow;
       debugPrint('exact schedule failed, using inexact: $error');
       await _zoned(
         id,
@@ -250,6 +249,7 @@ class NotificationService {
       scheduledDate: scheduled,
       notificationDetails: _details,
       androidScheduleMode: mode,
+      matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
     );
   }

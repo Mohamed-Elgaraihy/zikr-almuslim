@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../logic/progress_logic.dart';
+import '../services/tick_feedback.dart';
 import '../theme/app_theme.dart';
 
 class CounterButton extends StatefulWidget {
@@ -81,11 +81,7 @@ class _CounterButtonState extends State<CounterButton>
       return;
     }
     if (!widget.haptics) return;
-    if (finishing) {
-      HapticFeedback.mediumImpact();
-    } else {
-      HapticFeedback.lightImpact();
-    }
+    unawaited(lightTick(strong: finishing));
   }
 
   @override

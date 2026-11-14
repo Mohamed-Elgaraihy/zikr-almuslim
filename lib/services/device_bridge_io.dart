@@ -65,6 +65,16 @@ Future<void> allowBackgroundReminders() async {
   }
 }
 
+Future<String?> timeZoneId() async {
+  try {
+    return await _channel.invokeMethod<String>('timeZone');
+  } on MissingPluginException {
+    return null;
+  } on PlatformException {
+    return null;
+  }
+}
+
 Future<String?> takePendingSlot() async {
   try {
     return await _channel.invokeMethod<String>('takePendingSlot');
