@@ -1,6 +1,6 @@
 const String kDeveloperName = 'محمد الجرايحي';
 const String kDeveloperSite = 'https://moelgaraihy.com';
-const String kAppVersionLabel = '1.5.7';
+const String kAppVersionLabel = '1.5.8';
 
 class InfoBlock {
   const InfoBlock(this.body, {this.heading});

@@ -158,6 +158,21 @@ class AppController extends ChangeNotifier {
     _commit(state.copyWith(hintSeen: true));
   }
 
+  void incrementSebha() {
+    _commit(state.copyWith(sebhaCount: state.sebhaCount + 1));
+  }
+
+  void resetSebha() {
+    if (state.sebhaCount == 0) return;
+    _commit(state.copyWith(sebhaCount: 0));
+  }
+
+  void setSebhaTarget(int target) {
+    final next = target < 0 ? 0 : target;
+    if (next == state.sebhaTarget) return;
+    _commit(state.copyWith(sebhaTarget: next));
+  }
+
   Future<void> allowBackgroundReminders() =>
       DeviceBridge.allowBackgroundReminders();
 

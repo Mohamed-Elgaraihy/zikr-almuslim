@@ -53,6 +53,8 @@ class PersistedState {
     this.darkMode = false,
     this.hapticsOn = true,
     this.autoAdvance = true,
+    this.sebhaCount = 0,
+    this.sebhaTarget = 0,
   });
 
   final String day;
@@ -75,6 +77,8 @@ class PersistedState {
   final bool darkMode;
   final bool hapticsOn;
   final bool autoAdvance;
+  final int sebhaCount;
+  final int sebhaTarget;
 
   factory PersistedState.fresh(DateTime now) {
     return PersistedState(day: formatDay(now));
@@ -104,6 +108,8 @@ class PersistedState {
     bool? darkMode,
     bool? hapticsOn,
     bool? autoAdvance,
+    int? sebhaCount,
+    int? sebhaTarget,
   }) {
     return PersistedState(
       day: day ?? this.day,
@@ -130,6 +136,8 @@ class PersistedState {
       darkMode: darkMode ?? this.darkMode,
       hapticsOn: hapticsOn ?? this.hapticsOn,
       autoAdvance: autoAdvance ?? this.autoAdvance,
+      sebhaCount: sebhaCount ?? this.sebhaCount,
+      sebhaTarget: sebhaTarget ?? this.sebhaTarget,
     );
   }
 
@@ -155,6 +163,8 @@ class PersistedState {
       'darkMode': darkMode,
       'hapticsOn': hapticsOn,
       'autoAdvance': autoAdvance,
+      'sebhaCount': sebhaCount,
+      'sebhaTarget': sebhaTarget,
     };
   }
 
@@ -199,6 +209,8 @@ class PersistedState {
       darkMode: json['darkMode'] as bool? ?? false,
       hapticsOn: json['hapticsOn'] as bool? ?? true,
       autoAdvance: json['autoAdvance'] as bool? ?? true,
+      sebhaCount: (json['sebhaCount'] as num?)?.toInt() ?? 0,
+      sebhaTarget: (json['sebhaTarget'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -239,15 +251,6 @@ String previousDay(String day) {
 }
 
 String arabicDate(DateTime date) {
-  const weekdays = [
-    'الاثنين',
-    'الثلاثاء',
-    'الأربعاء',
-    'الخميس',
-    'الجمعة',
-    'السبت',
-    'الأحد',
-  ];
   const months = [
     'يناير',
     'فبراير',
@@ -262,29 +265,83 @@ String arabicDate(DateTime date) {
     'نوفمبر',
     'ديسمبر',
   ];
-  return '${weekdays[date.weekday - 1]} ${date.day} ${months[date.month - 1]}';
+  return '${weekdayName(date)} ${arabicDigits(date.day)} ${months[date.month - 1]}';
 }
 
-String shortWeekday(DateTime date) {
-  const labels = ['إث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أحد'];
-  return labels[date.weekday - 1];
+String weekdayName(DateTime date) {
+  const names = [
+    'الإثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+    'الأحد',
+  ];
+  return names[date.weekday - 1];
 }
 
 String formatClock(int hour, int minute) {
   final h = hour.toString().padLeft(2, '0');
   final m = minute.toString().padLeft(2, '0');
-  return '$h:$m';
+  return ltr('${arabicDigits(h)}:${arabicDigits(m)}');
 }
 
 String formatCount(int value) {
-  if (value >= 100) return '$value';
-  return value.toString().padLeft(2, '0');
+  final text = value >= 100 ? '$value' : value.toString().padLeft(2, '0');
+  return arabicDigits(text);
 }
 
 /// Keeps digits and slashes in left-to-right order inside the Arabic layout.
 String ltr(Object value) => '\u200E$value';
 
-String fraction(int done, int total) => ltr('$done / $total');
+const _indicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+String arabicDigits(Object value) {
+  return '$value'.replaceAllMapped(RegExp('[0-9]'), (match) {
+    return _indicDigits[int.parse(match[0]!)];
+  });
+}
+
+/// 1, 2, 3–10, and 11+ (including 0) use different Arabic forms.
+String countedNoun(
+  int count, {
+  required String one,
+  required String two,
+  required String few,
+  required String many,
+}) {
+  final n = count.abs();
+  final word = switch (n) {
+    1 => one,
+    2 => two,
+    >= 3 && <= 10 => few,
+    _ => many,
+  };
+  return '${arabicDigits(count)} $word';
+}
+
+String dayPhrase(int count) =>
+    countedNoun(count, one: 'يوم', two: 'يومين', few: 'أيام', many: 'يومًا');
+
+String tapPhrase(int count) => countedNoun(
+  count,
+  one: 'تكرار',
+  two: 'تكرارين',
+  few: 'تكرارات',
+  many: 'تكرارًا',
+);
+
+String chapterPhrase(int count) => countedNoun(
+  count,
+  one: 'باب مكتمل',
+  two: 'بابين مكتملين',
+  few: 'أبواب مكتملة',
+  many: 'بابًا مكتملًا',
+);
+
+String fraction(int done, int total) =>
+    ltr('${arabicDigits(done)} / ${arabicDigits(total)}');
 
 int tapsFor(PersistedState state, String categoryId, int itemId) {
   return state.taps[itemKey(categoryId, itemId)] ?? 0;

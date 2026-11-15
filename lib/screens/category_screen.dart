@@ -248,7 +248,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       context,
                       title: 'تقبّل الله',
                       body:
-                          'أتممت ورد اليوم. سلسلتك الآن ${controller.streakNow()} ${controller.streakNow() == 1 ? 'يوم' : 'أيام'}.',
+                          'أتممت ورد اليوم. سلسلتك الآن ${dayPhrase(controller.streakNow())}.',
                     );
                   } else if (result.categoryCompleted &&
                       (category.id == 'morning' || category.id == 'evening')) {
@@ -264,7 +264,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
             ),
             if (entry.$1 == adAfter)
-              const PlacedAd(margin: EdgeInsets.fromLTRB(16, 32, 16, 32)),
+              const PlacedAd(
+                labeled: true,
+                margin: EdgeInsets.fromLTRB(16, 36, 16, 36),
+              ),
           ],
         ],
       ),

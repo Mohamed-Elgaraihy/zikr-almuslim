@@ -55,6 +55,32 @@ void main() {
     );
   });
 
+  testWidgets('the free sebha keeps its count', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'zikr_state_v1': '{"onboardingSeen":true,"day":"2026-10-05"}',
+    });
+    final controller = AppController(enableNotifications: false);
+    await tester.runAsync(() => controller.bootstrap());
+    await tester.pumpWidget(
+      ZikrApp(controller: controller, enableTicker: false),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('open-sebha')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('٠'), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('sebha-tap')));
+    await tester.pump();
+    expect(find.text('١'), findsWidgets);
+    expect(controller.state.sebhaCount, 1);
+
+    await tester.tap(find.text('٣٣'));
+    await tester.pump();
+    expect(controller.state.sebhaTarget, 33);
+  });
+
   testWidgets('morning counter counts down from the card', (tester) async {
     SharedPreferences.setMockInitialValues({
       'zikr_state_v1': '{"onboardingSeen":true,"day":"2026-10-05"}',
@@ -81,7 +107,7 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pump();
-    expect(find.text('01'), findsWidgets);
+    expect(find.text('٠١'), findsWidgets);
 
     final copy = find.byTooltip('نسخ');
     expect(copy, findsWidgets);
