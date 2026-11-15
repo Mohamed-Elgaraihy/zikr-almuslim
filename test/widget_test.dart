@@ -76,9 +76,18 @@ void main() {
     expect(find.text('١'), findsWidgets);
     expect(controller.state.sebhaCount, 1);
 
+    await tester.tap(find.byKey(const ValueKey('sebha-count')));
+    await tester.pump();
+    expect(controller.state.sebhaCount, 2);
+
+    await tester.tap(find.text('تصفير'));
+    await tester.pump();
+    expect(controller.state.sebhaCount, 0);
+
     await tester.tap(find.text('٣٣'));
     await tester.pump();
     expect(controller.state.sebhaTarget, 33);
+    expect(controller.state.sebhaCount, 0);
   });
 
   testWidgets('morning counter counts down from the card', (tester) async {
