@@ -28,6 +28,7 @@ class AppController extends ChangeNotifier {
   final NotificationService _notifications;
   final DateTime Function() _clock;
   Future<void> _queuedSave = Future<void>.value();
+  Future<void> _queuedSync = Future<void>.value();
 
   PersistedState state = PersistedState.fresh(DateTime.now());
   AzkarLibrary? library;
@@ -296,7 +297,15 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> syncReminders({bool reschedule = false}) async {
+  Future<void> syncReminders({bool reschedule = false}) {
+    final run = _queuedSync.then((_) => _syncReminders(reschedule: reschedule));
+    _queuedSync = run.catchError((Object error) {
+      debugPrint('sync reminders failed: $error');
+    });
+    return run;
+  }
+
+  Future<void> _syncReminders({required bool reschedule}) async {
     if (library == null) return;
     final clockNow = now;
     final baseline = state;
@@ -322,11 +331,12 @@ class AppController extends ChangeNotifier {
       }
       if (reschedule) {
         try {
+          final latest = rollTo(state, now);
           await _notifications.scheduleWeek(
-            state: planned,
-            now: clockNow,
-            morningDone: slotDone(planned, azkar, WirdSlot.morning),
-            eveningDone: slotDone(planned, azkar, WirdSlot.evening),
+            state: latest,
+            now: now,
+            morningDone: slotDone(latest, azkar, WirdSlot.morning),
+            eveningDone: slotDone(latest, azkar, WirdSlot.evening),
           );
         } catch (error) {
           debugPrint('schedule failed: $error');

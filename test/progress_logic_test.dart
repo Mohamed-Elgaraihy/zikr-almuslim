@@ -174,6 +174,69 @@ void main() {
     expect(weekdayName(DateTime(2026, 10, 11)), 'الأحد');
   });
 
+  test('a finished morning wird has no alarm today and arms tomorrow', () {
+    final now = DateTime(2026, 10, 5, 5);
+    final plans = reminderSchedule(
+      now: now,
+      morningHour: 6,
+      morningMinute: 0,
+      eveningHour: 16,
+      eveningMinute: 30,
+      morningDone: true,
+      eveningDone: false,
+    );
+    final morning = plans.where((plan) => plan.morning).toList();
+    expect(morning, isNotEmpty);
+    expect(morning.first.when, DateTime(2026, 10, 6, 6));
+    expect(morning.first.id, 1101);
+    expect(morning.where((plan) => plan.when.day == 5), isEmpty);
+    expect(morning.map((plan) => plan.id), isNot(contains(1100)));
+    final eveningToday = plans.where(
+      (plan) => !plan.morning && plan.when.day == 5,
+    );
+    expect(eveningToday.map((plan) => plan.when), [
+      DateTime(2026, 10, 5, 16, 30),
+    ]);
+    final eveningDone = reminderSchedule(
+      now: now,
+      morningHour: 6,
+      morningMinute: 0,
+      eveningHour: 16,
+      eveningMinute: 30,
+      morningDone: true,
+      eveningDone: true,
+    ).where((plan) => !plan.morning);
+    expect(eveningDone.where((plan) => plan.when.day == 5), isEmpty);
+    expect(eveningDone.first.when, DateTime(2026, 10, 6, 16, 30));
+  });
+
+  test('an open morning wird before its time is armed today', () {
+    final plans = reminderSchedule(
+      now: DateTime(2026, 10, 5, 5),
+      morningHour: 6,
+      morningMinute: 0,
+      eveningHour: 16,
+      eveningMinute: 30,
+      morningDone: false,
+      eveningDone: false,
+    );
+    final morning = plans.where((plan) => plan.morning).first;
+    expect(morning.when, DateTime(2026, 10, 5, 6));
+    expect(morning.id, 1100);
+  });
+
+  test('rescheduling clears the old one-shot week ids', () {
+    expect(
+      reminderAlarmIds,
+      containsAll([for (var day = 0; day < 7; day++) 1100 + day]),
+    );
+    expect(
+      reminderAlarmIds,
+      containsAll([for (var day = 0; day < 7; day++) 2100 + day]),
+    );
+    expect(reminderAlarmIds.toSet().length, reminderAlarmIds.length);
+  });
+
   test('a reminder is today until the wird is done, then tomorrow', () {
     final morning = DateTime(2026, 10, 5, 5, 30);
     expect(

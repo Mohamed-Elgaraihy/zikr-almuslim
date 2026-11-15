@@ -163,9 +163,8 @@ class NotificationService {
   }
 
   Future<void> cancelWeek() async {
-    for (var day = 0; day < 7; day++) {
-      await _plugin.cancel(id: 1100 + day);
-      await _plugin.cancel(id: 2100 + day);
+    for (final id in reminderAlarmIds) {
+      await _plugin.cancel(id: id);
     }
   }
 
@@ -181,35 +180,31 @@ class NotificationService {
     final mode = exact
         ? AndroidScheduleMode.exactAllowWhileIdle
         : AndroidScheduleMode.inexactAllowWhileIdle;
-    await _scheduleDaily(
-      1100,
-      'أذكار الصباح',
-      'لم تقرأ أذكار الصباح اليوم. هل قرأت وردك؟',
-      nextReminderInstant(
-        now,
-        state.morningHour,
-        state.morningMinute,
-        doneToday: morningDone,
-      ),
-      'morning',
-      mode,
+    final plans = reminderSchedule(
+      now: now,
+      morningHour: state.morningHour,
+      morningMinute: state.morningMinute,
+      eveningHour: state.eveningHour,
+      eveningMinute: state.eveningMinute,
+      morningDone: morningDone,
+      eveningDone: eveningDone,
     );
-    await _scheduleDaily(
-      2100,
-      'أذكار المساء',
-      'لم تقرأ أذكار المساء اليوم. تذكير لطيف بوردك.',
-      nextReminderInstant(
-        now,
-        state.eveningHour,
-        state.eveningMinute,
-        doneToday: eveningDone,
-      ),
-      'evening',
-      mode,
-    );
+    for (final plan in plans) {
+      final morning = plan.morning;
+      await _scheduleOneShot(
+        plan.id,
+        morning ? 'أذكار الصباح' : 'أذكار المساء',
+        morning
+            ? 'لم تقرأ أذكار الصباح اليوم. هل قرأت وردك؟'
+            : 'لم تقرأ أذكار المساء اليوم. تذكير لطيف بوردك.',
+        plan.when,
+        morning ? 'morning' : 'evening',
+        mode,
+      );
+    }
   }
 
-  Future<void> _scheduleDaily(
+  Future<void> _scheduleOneShot(
     int id,
     String title,
     String body,
@@ -249,7 +244,6 @@ class NotificationService {
       scheduledDate: scheduled,
       notificationDetails: _details,
       androidScheduleMode: mode,
-      matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
     );
   }

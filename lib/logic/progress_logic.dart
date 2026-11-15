@@ -400,6 +400,87 @@ bool slotDone(PersistedState state, AzkarLibrary library, WirdSlot slot) {
   return categoryDone(state, categoryForSlot(library, slot));
 }
 
+/// How many days of one-shot alarms to arm. Daily repeat via
+/// `matchDateTimeComponents` always snaps to the next clock time, so a finished
+/// wird would still ring later the same day.
+const int reminderHorizonDays = 14;
+
+int morningReminderId(int dayOffset) => 1100 + dayOffset;
+
+int eveningReminderId(int dayOffset) => 2100 + dayOffset;
+
+/// Every id the scheduler must cancel before arming, including the seven
+/// one-shot ids used before 1.5.10.
+List<int> get reminderAlarmIds => [
+  for (var day = 0; day < reminderHorizonDays; day++) ...[
+    morningReminderId(day),
+    eveningReminderId(day),
+  ],
+];
+
+class ScheduledReminder {
+  const ScheduledReminder({
+    required this.id,
+    required this.when,
+    required this.morning,
+  });
+
+  final int id;
+  final DateTime when;
+  final bool morning;
+}
+
+/// One-shot alarms. Today is included only when that wird is still open and
+/// its time has not passed.
+List<ScheduledReminder> reminderSchedule({
+  required DateTime now,
+  required int morningHour,
+  required int morningMinute,
+  required int eveningHour,
+  required int eveningMinute,
+  required bool morningDone,
+  required bool eveningDone,
+}) {
+  final start = DateTime(now.year, now.month, now.day);
+  final plans = <ScheduledReminder>[];
+  for (var offset = 0; offset < reminderHorizonDays; offset++) {
+    final day = start.add(Duration(days: offset));
+    final morning = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      morningHour,
+      morningMinute,
+    );
+    if (!morning.isBefore(now) && !(offset == 0 && morningDone)) {
+      plans.add(
+        ScheduledReminder(
+          id: morningReminderId(offset),
+          when: morning,
+          morning: true,
+        ),
+      );
+    }
+    final evening = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      eveningHour,
+      eveningMinute,
+    );
+    if (!evening.isBefore(now) && !(offset == 0 && eveningDone)) {
+      plans.add(
+        ScheduledReminder(
+          id: eveningReminderId(offset),
+          when: evening,
+          morning: false,
+        ),
+      );
+    }
+  }
+  return plans;
+}
+
 /// Next time a daily reminder should ring. Today if it is still ahead and the
 /// wird is not done, otherwise the same clock time tomorrow.
 DateTime nextReminderInstant(
