@@ -22,6 +22,13 @@ class SebhaScreen extends StatelessWidget {
           final count = controller.state.sebhaCount;
           final target = controller.state.sebhaTarget;
           final reached = target > 0 && count > 0 && count % target == 0;
+          void countTap() {
+            controller.incrementSebha();
+            if (controller.state.hapticsOn) {
+              unawaited(lightTick());
+            }
+          }
+
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -65,55 +72,72 @@ class SebhaScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Text(
-                    arabicDigits(count),
-                    key: const ValueKey('sebha-count'),
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 72,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                      color: reached
-                          ? context.palette.green
-                          : context.palette.greenDark,
-                    ),
-                  ),
-                  if (reached) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'تم الهدف',
-                      style: TextStyle(
-                        color: context.palette.green,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 88,
-                    child: FilledButton(
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: GestureDetector(
                       key: const ValueKey('sebha-tap'),
-                      onPressed: () {
-                        controller.incrementSebha();
-                        if (controller.state.hapticsOn) {
-                          unawaited(lightTick());
-                        }
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        textStyle: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: (_) => countTap(),
+                      child: Column(
+                        children: [
+                          const Spacer(),
+                          Text(
+                            arabicDigits(count),
+                            key: const ValueKey('sebha-count'),
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 72,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                              color: reached
+                                  ? context.palette.green
+                                  : context.palette.greenDark,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'اضغط في أي مكان للعدّ',
+                            style: TextStyle(
+                              color: context.palette.inkSoft,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (reached) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'تم الهدف',
+                              style: TextStyle(
+                                color: context.palette.green,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          IgnorePointer(
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 88,
+                              child: FilledButton(
+                                onPressed: () {},
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.green,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontFamily: 'Cairo',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                child: const Text('سبّح'),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const Text('سبّح'),
                     ),
                   ),
                   const SizedBox(height: 12),

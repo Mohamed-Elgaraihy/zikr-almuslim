@@ -76,9 +76,18 @@ void main() {
     expect(find.text('١'), findsWidgets);
     expect(controller.state.sebhaCount, 1);
 
+    await tester.tap(find.byKey(const ValueKey('sebha-count')));
+    await tester.pump();
+    expect(controller.state.sebhaCount, 2);
+
+    await tester.tap(find.text('تصفير'));
+    await tester.pump();
+    expect(controller.state.sebhaCount, 0);
+
     await tester.tap(find.text('٣٣'));
     await tester.pump();
     expect(controller.state.sebhaTarget, 33);
+    expect(controller.state.sebhaCount, 0);
   });
 
   testWidgets('morning counter counts down from the card', (tester) async {
@@ -250,6 +259,92 @@ void main() {
     final again = AppController(enableNotifications: false);
     await again.bootstrap();
     expect(again.state.hintSeen, isTrue);
+  });
+
+  testWidgets('morning and evening show audio only for mapped adhkar', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'zikr_state_v1': '{"onboardingSeen":true,"day":"2026-10-05"}',
+    });
+    final controller = AppController(enableNotifications: false);
+    await tester.runAsync(() => controller.bootstrap());
+    await tester.pumpWidget(
+      ZikrApp(controller: controller, enableTicker: false),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('أذكار الصباح').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byKey(const ValueKey('play-all-morning')), findsOneWidget);
+    expect(find.text('تشغيل الكل'), findsOneWidget);
+    expect(find.byKey(const ValueKey('play-morning-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('counter-morning-1')), findsOneWidget);
+
+    final ikhlas = find.textContaining('قُلْ هُوَ ٱللَّهُ أَحَدٌ');
+    await tester.scrollUntilVisible(
+      ikhlas,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(ikhlas, findsWidgets);
+    expect(find.byKey(const ValueKey('play-morning-2')), findsOneWidget);
+
+    final falaq = find.textContaining('قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ');
+    await tester.scrollUntilVisible(
+      falaq,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(falaq, findsWidgets);
+    expect(find.byKey(const ValueKey('play-morning-3')), findsNothing);
+  });
+
+  testWidgets('evening play buttons follow the mapped tracks', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'zikr_state_v1': '{"onboardingSeen":true,"day":"2026-10-05"}',
+    });
+    final controller = AppController(enableNotifications: false);
+    await tester.runAsync(() => controller.bootstrap());
+    await tester.pumpWidget(
+      ZikrApp(controller: controller, enableTicker: false),
+    );
+    await tester.pump();
+
+    final evening = find.text('أذكار المساء');
+    await tester.scrollUntilVisible(evening, 400, scrollable: _verticalScroll);
+    await tester.tap(evening);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('play-all-evening')), findsOneWidget);
+
+    final baqarah = find.textContaining('آمَنَ الرَّسُولُ');
+    await tester.scrollUntilVisible(
+      baqarah,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.byKey(const ValueKey('play-evening-2')), findsOneWidget);
+
+    final ikhlas = find.textContaining('قُلْ هُوَ ٱللَّهُ أَحَدٌ');
+    await tester.scrollUntilVisible(
+      ikhlas,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(ikhlas, findsWidgets);
+    expect(find.byKey(const ValueKey('play-evening-3')), findsOneWidget);
+
+    final falaq = find.textContaining('قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ');
+    await tester.scrollUntilVisible(
+      falaq,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(falaq, findsWidgets);
+    expect(find.byKey(const ValueKey('play-evening-4')), findsNothing);
   });
 }
 
