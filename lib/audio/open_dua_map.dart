@@ -1,10 +1,12 @@
 /// Offline Open Dua recitations (Muhammad Jumah) that match an azkar item.
 ///
 /// Morning and evening variants are separate files. An item is absent when
-/// the recording is a different wording, a combined clip, or not in the set.
+/// the recording is a different wording or not in the set. The three
+/// Mu'awwidhat are one clip, attached only to al-Ikhlas.
 const openDuaTracks = <String, Map<int, String>>{
   'morning': {
     1: 'OD-075.mp3',
+    2: 'OD-076.mp3',
     5: 'OD-077-1.mp3',
     6: 'OD-079.mp3',
     7: 'OD-087.mp3',
@@ -29,6 +31,7 @@ const openDuaTracks = <String, Map<int, String>>{
   'evening': {
     1: 'OD-075.mp3',
     2: 'OD-101.mp3',
+    3: 'OD-076.mp3',
     6: 'OD-077-2.mp3',
     7: 'OD-079.mp3',
     8: 'OD-087.mp3',

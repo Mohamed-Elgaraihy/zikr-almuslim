@@ -290,7 +290,16 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(ikhlas, findsWidgets);
-    expect(find.byKey(const ValueKey('play-morning-2')), findsNothing);
+    expect(find.byKey(const ValueKey('play-morning-2')), findsOneWidget);
+
+    final falaq = find.textContaining('قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ');
+    await tester.scrollUntilVisible(
+      falaq,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(falaq, findsWidgets);
+    expect(find.byKey(const ValueKey('play-morning-3')), findsNothing);
   });
 
   testWidgets('evening play buttons follow the mapped tracks', (tester) async {
@@ -326,7 +335,16 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(ikhlas, findsWidgets);
-    expect(find.byKey(const ValueKey('play-evening-3')), findsNothing);
+    expect(find.byKey(const ValueKey('play-evening-3')), findsOneWidget);
+
+    final falaq = find.textContaining('قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ');
+    await tester.scrollUntilVisible(
+      falaq,
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(falaq, findsWidgets);
+    expect(find.byKey(const ValueKey('play-evening-4')), findsNothing);
   });
 }
 

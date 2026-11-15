@@ -14,8 +14,8 @@ void main() {
       final data = jsonDecode(raw) as Map<String, dynamic>;
       final categories = data['categories'] as List<dynamic>;
       final unmapped = {
-        'morning': {2, 3, 4, 15, 16, 22, 23, 24, 26, 28},
-        'evening': {3, 4, 5, 16, 17, 23, 24, 25, 27, 29},
+        'morning': {3, 4, 15, 16, 22, 23, 24, 26, 28},
+        'evening': {4, 5, 16, 17, 23, 24, 25, 27, 29},
       };
 
       for (final category in categories) {
@@ -43,6 +43,12 @@ void main() {
         expect(openDuaTracks[id]!.keys.every(seen.contains), isTrue);
       }
 
+      expect(openDuaAsset('morning', 2), 'assets/audio/opendua/OD-076.mp3');
+      expect(openDuaAsset('evening', 3), 'assets/audio/opendua/OD-076.mp3');
+      expect(openDuaAsset('morning', 3), isNull);
+      expect(openDuaAsset('morning', 4), isNull);
+      expect(openDuaAsset('evening', 4), isNull);
+      expect(openDuaAsset('evening', 5), isNull);
       expect(openDuaAsset('morning', 5), 'assets/audio/opendua/OD-077-1.mp3');
       expect(openDuaAsset('evening', 6), 'assets/audio/opendua/OD-077-2.mp3');
       expect(openDuaAsset('morning', 12), 'assets/audio/opendua/OD-078-1.mp3');
