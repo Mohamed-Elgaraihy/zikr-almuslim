@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../logic/progress_logic.dart';
+import '../services/tick_feedback.dart';
 import '../state/app_controller.dart';
 import '../theme/app_theme.dart';
 
@@ -97,7 +99,7 @@ class SebhaScreen extends StatelessWidget {
                       onPressed: () {
                         controller.incrementSebha();
                         if (controller.state.hapticsOn) {
-                          HapticFeedback.lightImpact();
+                          unawaited(lightTick());
                         }
                       },
                       style: FilledButton.styleFrom(

@@ -148,11 +148,6 @@ class AppController extends ChangeNotifier {
     syncReminders(reschedule: true);
   }
 
-  void clearToday() {
-    _commit(resetToday(state));
-    syncReminders(reschedule: true);
-  }
-
   void dismissHint() {
     if (state.hintSeen) return;
     _commit(state.copyWith(hintSeen: true));

@@ -45,4 +45,6 @@ Future<void> allowBackgroundReminders() async {}
 
 Future<String?> takePendingSlot() async => null;
 
+Future<String?> timeZoneId() async => null;
+
 void listen(void Function(String slot) onSlot) {}

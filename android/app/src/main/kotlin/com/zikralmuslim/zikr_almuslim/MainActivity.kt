@@ -102,6 +102,7 @@ class MainActivity : FlutterActivity() {
                     allowBackgroundReminders()
                     result.success(true)
                 }
+                "timeZone" -> result.success(java.util.TimeZone.getDefault().id)
                 else -> result.notImplemented()
             }
         }

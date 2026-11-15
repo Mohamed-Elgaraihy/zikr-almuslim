@@ -202,22 +202,28 @@ class _MobileBannerState extends State<MobileBanner> {
     final height = widget.labeled
         ? fixedHeight
         : (_reservedHeight ?? anchoredBannerHeight(width)).toDouble();
-    if (!widget.labeled && _failed) return const SizedBox.shrink();
     final banner = _banner;
+    final bannerReady = _loaded && banner != null && !_failed;
+    if (widget.labeled && !bannerReady) return const SizedBox.shrink();
+    if (!widget.labeled && _failed) return const SizedBox.shrink();
+    final Widget creativeChild;
+    if (bannerReady) {
+      creativeChild = Center(
+        child: SizedBox(
+          width: banner.size.width.toDouble(),
+          height: height,
+          child: AdWidget(ad: banner),
+        ),
+      );
+    } else {
+      creativeChild = const SizedBox.expand();
+    }
     final creative = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: double.infinity,
         height: height,
-        child: _loaded && banner != null && !_failed
-            ? Center(
-                child: SizedBox(
-                  width: banner.size.width.toDouble(),
-                  height: height,
-                  child: AdWidget(ad: banner),
-                ),
-              )
-            : const SizedBox.expand(),
+        child: creativeChild,
       ),
     );
     if (!widget.labeled) {

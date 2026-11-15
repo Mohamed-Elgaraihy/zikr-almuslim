@@ -174,6 +174,23 @@ void main() {
     expect(weekdayName(DateTime(2026, 10, 11)), 'الأحد');
   });
 
+  test('a reminder is today until the wird is done, then tomorrow', () {
+    final morning = DateTime(2026, 10, 5, 5, 30);
+    expect(
+      nextReminderInstant(morning, 6, 0, doneToday: false),
+      DateTime(2026, 10, 5, 6, 0),
+    );
+    final after = DateTime(2026, 10, 5, 7, 0);
+    expect(
+      nextReminderInstant(after, 6, 0, doneToday: false),
+      DateTime(2026, 10, 6, 6, 0),
+    );
+    expect(
+      nextReminderInstant(morning, 6, 0, doneToday: true),
+      DateTime(2026, 10, 6, 6, 0),
+    );
+  });
+
   test('the sebha count is kept apart from the daily wird', () {
     final state = PersistedState(
       day: '2026-10-05',

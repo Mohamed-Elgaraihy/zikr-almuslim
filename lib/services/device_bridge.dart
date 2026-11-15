@@ -32,6 +32,8 @@ class DeviceBridge {
 
   static Future<String?> takePendingSlot() => bridge.takePendingSlot();
 
+  static Future<String?> timeZoneId() => bridge.timeZoneId();
+
   static void listen(void Function(String slot) onSlot) =>
       bridge.listen(onSlot);
 }

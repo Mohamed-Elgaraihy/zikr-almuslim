@@ -400,6 +400,19 @@ bool slotDone(PersistedState state, AzkarLibrary library, WirdSlot slot) {
   return categoryDone(state, categoryForSlot(library, slot));
 }
 
+/// Next time a daily reminder should ring. Today if it is still ahead and the
+/// wird is not done, otherwise the same clock time tomorrow.
+DateTime nextReminderInstant(
+  DateTime now,
+  int hour,
+  int minute, {
+  required bool doneToday,
+}) {
+  final today = DateTime(now.year, now.month, now.day, hour, minute);
+  if (!doneToday && !today.isBefore(now)) return today;
+  return today.add(const Duration(days: 1));
+}
+
 DateTime slotMoment(PersistedState state, DateTime day, WirdSlot slot) {
   if (slot == WirdSlot.morning) {
     return DateTime(
