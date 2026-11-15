@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../audio/adhkar_playback.dart';
+import '../audio/open_dua_map.dart';
 import '../logic/progress_logic.dart';
 import '../models/azkar.dart';
 import '../services/device_bridge.dart';
@@ -25,6 +29,11 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   final _scroll = ScrollController();
   final _keys = <int, GlobalKey>{};
+  AdhkarPlayback? _playback;
+  int? _revealedItem;
+
+  bool get _hasAudio =>
+      widget.categoryId == 'morning' || widget.categoryId == 'evening';
 
   @override
   void initState() {
@@ -35,9 +44,38 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   @override
   void dispose() {
+    _playback?.removeListener(_onPlayback);
+    final playback = _playback;
+    _playback = null;
+    if (playback != null) unawaited(playback.close());
     DeviceBridge.setAwake(false);
     _scroll.dispose();
     super.dispose();
+  }
+
+  AdhkarPlayback _player() {
+    final playback = _playback ??= AdhkarPlayback()..addListener(_onPlayback);
+    return playback;
+  }
+
+  void _onPlayback() {
+    if (!mounted) return;
+    final itemId = _playback?.itemId;
+    final sequence = _playback?.sequence ?? false;
+    setState(() {});
+    if (!sequence || itemId == null) {
+      _revealedItem = null;
+      return;
+    }
+    if (itemId == _revealedItem) return;
+    _revealedItem = itemId;
+    final library = widget.controller.library;
+    if (library == null) return;
+    final index = library
+        .byId(widget.categoryId)
+        .items
+        .indexWhere((item) => item.id == itemId);
+    if (index >= 0) unawaited(_reveal(index));
   }
 
   GlobalKey _keyFor(int index) => _keys.putIfAbsent(index, GlobalKey.new);
@@ -177,6 +215,27 @@ class _CategoryScreenState extends State<CategoryScreen> {
         controller: _scroll,
         padding: const EdgeInsets.only(top: 16, bottom: 28),
         children: [
+          if (_hasAudio)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  key: ValueKey('play-all-${category.id}'),
+                  onPressed: () => _player().playAll(category.id, [
+                    for (final item in category.items) item.id,
+                  ]),
+                  icon: Icon(
+                    _playback?.sequence == true
+                        ? Icons.stop_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                  label: Text(
+                    _playback?.sequence == true ? 'إيقاف' : 'تشغيل الكل',
+                  ),
+                ),
+              ),
+            ),
           if (!controller.state.hintSeen)
             Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, landscape ? 8 : 12),
@@ -223,6 +282,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 fontSize: controller.state.fontSize,
                 showTashkeel: controller.state.showTashkeel,
                 haptics: controller.state.hapticsOn,
+                playing:
+                    _playback?.playingItem(category.id, entry.$2.id) ?? false,
+                onPlay: openDuaAsset(category.id, entry.$2.id) == null
+                    ? null
+                    : () => _player().toggle(category.id, entry.$2.id),
                 onCount: () {
                   final before = remainingFor(
                     controller.state,

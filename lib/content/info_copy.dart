@@ -44,6 +44,10 @@ const aboutBlocks = [
   InfoBlock(
     'التطبيق معين على الذكر. لا يغني عن سؤال أهل العلم، ولا يُقدَّم على أنه علاج طبّي أو بديل عن الرقية عند من يتقنها.',
   ),
+  InfoBlock(
+    'OpenDua dataset v0.0.4 (https://opendua.org), by Ihsan Labs at the Human Development Fund. Based on Hisn al-Muslim by Sa\'id ibn Ali ibn Wahf al-Qahtani. OpenDua editorial text and dataset structure are licensed CC BY 4.0. Recitation by Muhammad Jumah for OpenDua. OpenDua makes no ownership claim over the underlying religious texts.',
+    heading: 'مصدر التلاوة',
+  ),
   InfoBlock('لا تنسونا من صالح دعائكم.', heading: 'دعاء'),
 ];
 

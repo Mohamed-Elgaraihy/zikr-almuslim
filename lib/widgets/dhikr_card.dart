@@ -54,6 +54,8 @@ class DhikrCard extends StatelessWidget {
     required this.onReset,
     this.showTashkeel = true,
     this.haptics = true,
+    this.onPlay,
+    this.playing = false,
   });
 
   final String categoryId;
@@ -65,6 +67,8 @@ class DhikrCard extends StatelessWidget {
   final VoidCallback onReset;
   final bool showTashkeel;
   final bool haptics;
+  final VoidCallback? onPlay;
+  final bool playing;
 
   bool get done => remaining == 0;
 
@@ -78,9 +82,12 @@ class DhikrCard extends StatelessWidget {
         color: done ? context.palette.done : context.palette.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: done
+          color: playing
+              ? AppColors.gold
+              : done
               ? context.palette.green.withValues(alpha: 0.28)
               : context.palette.line,
+          width: playing ? 2 : 1,
         ),
       ),
       child: Column(
@@ -114,6 +121,21 @@ class DhikrCard extends StatelessWidget {
           ],
           Row(
             children: [
+              if (onPlay != null)
+                IconButton(
+                  key: ValueKey('play-$categoryId-${item.id}'),
+                  tooltip: playing ? 'إيقاف' : 'تشغيل',
+                  iconSize: 24,
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    tapTargetSize: MaterialTapTargetSize.padded,
+                  ),
+                  onPressed: onPlay,
+                  icon: Icon(
+                    playing ? Icons.stop_rounded : Icons.volume_up_rounded,
+                    color: context.palette.inkSoft,
+                  ),
+                ),
               IconButton(
                 tooltip: 'نسخ',
                 iconSize: 24,
