@@ -189,14 +189,15 @@ void main() {
     expect(morning, isNotEmpty);
     expect(morning.first.when, DateTime(2026, 10, 6, 6));
     expect(morning.first.id, 1101);
+    expect(morning.first.repeatsDaily, isFalse);
     expect(morning.where((plan) => plan.when.day == 5), isEmpty);
     expect(morning.map((plan) => plan.id), isNot(contains(1100)));
     final eveningToday = plans.where(
       (plan) => !plan.morning && plan.when.day == 5,
     );
-    expect(eveningToday.map((plan) => plan.when), [
-      DateTime(2026, 10, 5, 16, 30),
-    ]);
+    expect(eveningToday.single.when, DateTime(2026, 10, 5, 16, 30));
+    expect(eveningToday.single.id, 2100);
+    expect(eveningToday.single.repeatsDaily, isTrue);
     final eveningDone = reminderSchedule(
       now: now,
       morningHour: 6,
@@ -208,9 +209,10 @@ void main() {
     ).where((plan) => !plan.morning);
     expect(eveningDone.where((plan) => plan.when.day == 5), isEmpty);
     expect(eveningDone.first.when, DateTime(2026, 10, 6, 16, 30));
+    expect(eveningDone.first.repeatsDaily, isFalse);
   });
 
-  test('an open morning wird before its time is armed today', () {
+  test('an open morning wird before its time is a daily alarm', () {
     final plans = reminderSchedule(
       now: DateTime(2026, 10, 5, 5),
       morningHour: 6,
@@ -220,9 +222,30 @@ void main() {
       morningDone: false,
       eveningDone: false,
     );
-    final morning = plans.where((plan) => plan.morning).first;
+    final morning = plans.where((plan) => plan.morning).single;
     expect(morning.when, DateTime(2026, 10, 5, 6));
     expect(morning.id, 1100);
+    expect(morning.repeatsDaily, isTrue);
+    final evening = plans.where((plan) => !plan.morning).single;
+    expect(evening.when, DateTime(2026, 10, 5, 16, 30));
+    expect(evening.id, 2100);
+    expect(evening.repeatsDaily, isTrue);
+  });
+
+  test('a passed reminder time stays a daily alarm for tomorrow', () {
+    final plans = reminderSchedule(
+      now: DateTime(2026, 10, 5, 7),
+      morningHour: 6,
+      morningMinute: 0,
+      eveningHour: 16,
+      eveningMinute: 30,
+      morningDone: false,
+      eveningDone: false,
+    );
+    final morning = plans.where((plan) => plan.morning).single;
+    expect(morning.when, DateTime(2026, 10, 6, 6));
+    expect(morning.id, 1100);
+    expect(morning.repeatsDaily, isTrue);
   });
 
   test('rescheduling clears the old one-shot week ids', () {

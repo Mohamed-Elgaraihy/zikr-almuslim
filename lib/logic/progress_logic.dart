@@ -400,19 +400,21 @@ bool slotDone(PersistedState state, AzkarLibrary library, WirdSlot slot) {
   return categoryDone(state, categoryForSlot(library, slot));
 }
 
-/// How many days of one-shot alarms to arm. Daily repeat via
-/// `matchDateTimeComponents` always snaps to the next clock time, so a finished
-/// wird would still ring later the same day.
+/// One-shot horizon used only when a wird is already finished and its clock
+/// time is still ahead. A daily alarm cannot express "skip today" because
+/// `matchDateTimeComponents` snaps to the next clock time, which would be today.
 const int reminderHorizonDays = 14;
 
 int morningReminderId(int dayOffset) => 1100 + dayOffset;
 
 int eveningReminderId(int dayOffset) => 2100 + dayOffset;
 
-/// Every id the scheduler must cancel before arming, including the seven
-/// one-shot ids used before 1.5.10.
+/// Every id the scheduler must cancel before arming. Includes the daily ids,
+/// the skip-today one-shots, the pre-1.5.10 week, and the retired catch-up ids.
 List<int> get reminderAlarmIds => [
-  for (var day = 0; day < reminderHorizonDays; day++) ...[
+  11,
+  12,
+  for (var day = 0; day <= reminderHorizonDays; day++) ...[
     morningReminderId(day),
     eveningReminderId(day),
   ],
@@ -423,15 +425,17 @@ class ScheduledReminder {
     required this.id,
     required this.when,
     required this.morning,
+    required this.repeatsDaily,
   });
 
   final int id;
   final DateTime when;
   final bool morning;
+  final bool repeatsDaily;
 }
 
-/// One-shot alarms. Today is included only when that wird is still open and
-/// its time has not passed.
+/// One daily alarm per slot. Today is skipped when that wird is already done
+/// and the clock time is still ahead; those days are one-shots starting tomorrow.
 List<ScheduledReminder> reminderSchedule({
   required DateTime now,
   required int morningHour,
@@ -441,44 +445,64 @@ List<ScheduledReminder> reminderSchedule({
   required bool morningDone,
   required bool eveningDone,
 }) {
-  final start = DateTime(now.year, now.month, now.day);
-  final plans = <ScheduledReminder>[];
-  for (var offset = 0; offset < reminderHorizonDays; offset++) {
-    final day = start.add(Duration(days: offset));
-    final morning = DateTime(
-      day.year,
-      day.month,
-      day.day,
-      morningHour,
-      morningMinute,
-    );
-    if (!morning.isBefore(now) && !(offset == 0 && morningDone)) {
-      plans.add(
+  return [
+    ..._slotPlans(
+      now: now,
+      hour: morningHour,
+      minute: morningMinute,
+      done: morningDone,
+      morning: true,
+      idFor: morningReminderId,
+    ),
+    ..._slotPlans(
+      now: now,
+      hour: eveningHour,
+      minute: eveningMinute,
+      done: eveningDone,
+      morning: false,
+      idFor: eveningReminderId,
+    ),
+  ];
+}
+
+List<ScheduledReminder> _slotPlans({
+  required DateTime now,
+  required int hour,
+  required int minute,
+  required bool done,
+  required bool morning,
+  required int Function(int dayOffset) idFor,
+}) {
+  final today = DateTime(now.year, now.month, now.day, hour, minute);
+  final timeStillAhead = !today.isBefore(now);
+  if (done && timeStillAhead) {
+    final start = DateTime(now.year, now.month, now.day);
+    return [
+      for (var offset = 1; offset <= reminderHorizonDays; offset++)
         ScheduledReminder(
-          id: morningReminderId(offset),
-          when: morning,
-          morning: true,
+          id: idFor(offset),
+          when: start
+              .add(Duration(days: offset))
+              .copyWith(
+                hour: hour,
+                minute: minute,
+                second: 0,
+                millisecond: 0,
+                microsecond: 0,
+              ),
+          morning: morning,
+          repeatsDaily: false,
         ),
-      );
-    }
-    final evening = DateTime(
-      day.year,
-      day.month,
-      day.day,
-      eveningHour,
-      eveningMinute,
-    );
-    if (!evening.isBefore(now) && !(offset == 0 && eveningDone)) {
-      plans.add(
-        ScheduledReminder(
-          id: eveningReminderId(offset),
-          when: evening,
-          morning: false,
-        ),
-      );
-    }
+    ];
   }
-  return plans;
+  return [
+    ScheduledReminder(
+      id: idFor(0),
+      when: timeStillAhead ? today : today.add(const Duration(days: 1)),
+      morning: morning,
+      repeatsDaily: true,
+    ),
+  ];
 }
 
 /// Next time a daily reminder should ring. Today if it is still ahead and the
