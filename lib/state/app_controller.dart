@@ -308,56 +308,40 @@ class AppController extends ChangeNotifier {
   Future<void> _syncReminders({required bool reschedule}) async {
     if (library == null) return;
     final clockNow = now;
-    final baseline = state;
-    var planned = rollTo(baseline, clockNow);
-    final rolled = !identical(planned, baseline);
-    var changed = rolled;
-    final sent = <WirdSlot>[];
-    if (_notifications.ready) {
-      for (final notice in unsentNotices(planned, azkar, clockNow)) {
-        try {
-          await _notifications.showNow(
-            id: notice.slot == WirdSlot.morning ? 11 : 12,
-            title: notice.title,
-            body: notice.body,
-            payload: notice.payload,
-          );
-          planned = markSent(planned, notice.slot);
-          sent.add(notice.slot);
-          changed = true;
-        } catch (error) {
-          debugPrint('show reminder failed: $error');
-        }
-      }
-      if (reschedule) {
-        try {
-          final latest = rollTo(state, now);
-          await _notifications.scheduleWeek(
-            state: latest,
-            now: now,
-            morningDone: slotDone(latest, azkar, WirdSlot.morning),
-            eveningDone: slotDone(latest, azkar, WirdSlot.evening),
-          );
-        } catch (error) {
-          debugPrint('schedule failed: $error');
-        }
+    final dayChanged = state.day != formatDay(clockNow);
+    if (_notifications.ready && reschedule) {
+      try {
+        final latest = rollTo(state, now);
+        await _notifications.scheduleWeek(
+          state: latest,
+          now: now,
+          morningDone: slotDone(latest, azkar, WirdSlot.morning),
+          eveningDone: slotDone(latest, azkar, WirdSlot.evening),
+        );
+      } catch (error) {
+        debugPrint('schedule failed: $error');
       }
     }
-    // Apply only the reminder fields onto the latest state. A dismissal or a
-    // setting change during the await must not be replaced by the snapshot.
+    // Never post a reminder while opening the app. A time that has already
+    // passed is recorded so a later launch does not treat it as undelivered.
+    var merged = state;
+    var changed = false;
+    if (dayChanged && merged.day != formatDay(clockNow)) {
+      merged = rollTo(merged, clockNow);
+      changed = true;
+    }
+    if (merged.day == formatDay(clockNow)) {
+      for (final slot in WirdSlot.values) {
+        if (clockNow.isBefore(slotMoment(merged, clockNow, slot))) continue;
+        final ping = slot == WirdSlot.morning
+            ? merged.morningPingDay
+            : merged.eveningPingDay;
+        if (ping == merged.day) continue;
+        merged = markSent(merged, slot);
+        changed = true;
+      }
+    }
     if (changed) {
-      var merged = state;
-      if (rolled && merged.day != formatDay(clockNow)) {
-        merged = rollTo(merged, clockNow);
-      }
-      if (merged.day == planned.day) {
-        for (final slot in sent) {
-          final ping = slot == WirdSlot.morning
-              ? merged.morningPingDay
-              : merged.eveningPingDay;
-          if (ping != merged.day) merged = markSent(merged, slot);
-        }
-      }
       state = merged;
       notifyListeners();
       await _save();

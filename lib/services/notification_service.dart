@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -14,19 +15,23 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
   bool ready = false;
 
-  static const _details = NotificationDetails(
-    android: AndroidNotificationDetails(
-      'zikr_reminders',
-      'تذكير الأذكار',
-      channelDescription: 'تذكير إذا لم تُقرأ أذكار الصباح أو المساء',
-      importance: Importance.high,
-      priority: Priority.high,
-    ),
-    iOS: DarwinNotificationDetails(),
-    macOS: DarwinNotificationDetails(),
-    linux: LinuxNotificationDetails(),
-    windows: WindowsNotificationDetails(),
-  );
+  NotificationDetails _detailsFor({required bool morning}) {
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        morning ? 'zikr_morning' : 'zikr_evening',
+        morning ? 'تذكير الصباح' : 'تذكير المساء',
+        channelDescription: morning
+            ? 'تذكير إذا لم تُقرأ أذكار الصباح'
+            : 'تذكير إذا لم تُقرأ أذكار المساء',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+      iOS: const DarwinNotificationDetails(),
+      macOS: const DarwinNotificationDetails(),
+      linux: const LinuxNotificationDetails(),
+      windows: const WindowsNotificationDetails(),
+    );
+  }
 
   Future<void> init(void Function(String? payload) onTap) async {
     tzdata.initializeTimeZones();
@@ -59,14 +64,25 @@ class NotificationService {
   }
 
   Future<void> _useDeviceTimeZone() async {
+    final candidates = <String?>[];
     try {
-      final id = await DeviceBridge.timeZoneId();
-      if (id != null && id.isNotEmpty) {
-        tz.setLocalLocation(tz.getLocation(id));
-        return;
-      }
+      candidates.add((await FlutterTimezone.getLocalTimezone()).identifier);
+    } catch (error) {
+      debugPrint('flutter_timezone failed: $error');
+    }
+    try {
+      candidates.add(await DeviceBridge.timeZoneId());
     } catch (error) {
       debugPrint('timezone lookup failed: $error');
+    }
+    for (final id in candidates) {
+      if (id == null || id.isEmpty) continue;
+      try {
+        tz.setLocalLocation(tz.getLocation(id));
+        return;
+      } catch (error) {
+        debugPrint('unknown timezone $id: $error');
+      }
     }
     _useLocalOffset();
   }
@@ -157,7 +173,7 @@ class NotificationService {
       id: id,
       title: title,
       body: body,
-      notificationDetails: _details,
+      notificationDetails: _detailsFor(morning: payload != 'evening'),
       payload: payload,
     );
   }
@@ -191,7 +207,7 @@ class NotificationService {
     );
     for (final plan in plans) {
       final morning = plan.morning;
-      await _scheduleOneShot(
+      await _scheduleOne(
         plan.id,
         morning ? 'أذكار الصباح' : 'أذكار المساء',
         morning
@@ -200,21 +216,25 @@ class NotificationService {
         plan.when,
         morning ? 'morning' : 'evening',
         mode,
+        morning: morning,
+        match: plan.repeatsDaily ? DateTimeComponents.time : null,
       );
     }
   }
 
-  Future<void> _scheduleOneShot(
+  Future<void> _scheduleOne(
     int id,
     String title,
     String body,
     DateTime when,
     String payload,
-    AndroidScheduleMode mode,
-  ) async {
+    AndroidScheduleMode mode, {
+    required bool morning,
+    DateTimeComponents? match,
+  }) async {
     final scheduled = tz.TZDateTime.from(when, tz.local);
     try {
-      await _zoned(id, title, body, scheduled, payload, mode);
+      await _zoned(id, title, body, scheduled, payload, mode, morning, match);
     } on PlatformException catch (error) {
       if (mode != AndroidScheduleMode.exactAllowWhileIdle) rethrow;
       debugPrint('exact schedule failed, using inexact: $error');
@@ -225,6 +245,8 @@ class NotificationService {
         scheduled,
         payload,
         AndroidScheduleMode.inexactAllowWhileIdle,
+        morning,
+        match,
       );
     }
   }
@@ -236,15 +258,18 @@ class NotificationService {
     tz.TZDateTime scheduled,
     String payload,
     AndroidScheduleMode mode,
+    bool morning,
+    DateTimeComponents? match,
   ) {
     return _plugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
       scheduledDate: scheduled,
-      notificationDetails: _details,
+      notificationDetails: _detailsFor(morning: morning),
       androidScheduleMode: mode,
       payload: payload,
+      matchDateTimeComponents: match,
     );
   }
 }
